@@ -5,10 +5,18 @@ from pybaseball import schedule_and_record
 
 from src.feature_engineering import create_features
 
-"""
-Load and process team data for all MLB teams for a given year.
-"""
+#
+# Load and process team data for all MLB teams for a given year.]
+# Returns a DataFrame containing the schedules and records of all teams (Processed).
+#
 def load_all_team_data(year: int) -> pd.DataFrame:
+    # Load if CSV exists
+    rawpath = f"data/raw/mlb_teams_schedules_{year}.csv"
+    newpath = f"data/processed/mlb_teams_schedules_{year}_processed.csv"
+    if os.path.exists(rawpath) and os.path.exists(newpath):
+        print(f"Loading cached file: {newpath}")
+        return pd.read_csv(newpath)
+    
     mlb_teams = ['NYY', 'BOS', 'TOR', 'BAL', 'TBR',  # AL East
              'CHW', 'CLE', 'DET', 'KCR', 'MIN',  # AL Central
              'HOU', 'LAA', 'OAK', 'SEA', 'TEX',  # AL West
@@ -27,23 +35,24 @@ def load_all_team_data(year: int) -> pd.DataFrame:
             print(f"Error loading {team}: {e}")
 
     all_teams_df = pd.concat(raw_team_schedules.values(), ignore_index=True)
+    all_teams_df.to_csv(rawpath, index=False)
     
-    # Save raw data as CSV
-    all_teams_df.to_csv(f"data/raw/mlb_teams_schedules_{year}.csv", index=False)
+    return process_all_teams_data(year, all_teams_df)
 
-    
-    return all_teams_df
+#
+# Process the raw teams data by creating features and cleaning the DataFrame.
+# Returns a DataFrame containing the processed schedules and records of all teams.
+#
+def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
+    processed_df = create_features(df)
+    outpath = f"data/processed/mlb_teams_schedules_{year}_processed.csv"
+    processed_df.to_csv(outpath, index=False)
+    return processed_df
 
-def process_teams_data(year: int) -> None:
-    """
-    Process the raw teams data by creating features and cleaning the DataFrame.
-    """
-    processed_team_schedules = pd.read_csv(f"data/raw/{year}.csv")
-    proccessed_team_schedules = create_features(processed_team_schedules)
-
-    proccessed_team_schedules.to_csv("data/processed/mlb_teams_schedules_2024_processed.csv", index=False)
-
-def load_team_schedule(team: str, year: int) -> pd.DataFrame:
+#
+# Load the schedule for a specific team and year from a cached CSV file.
+#
+def load_team_schedule_CSV(team: str, year: int) -> pd.DataFrame:
     filepath = f"data/processed/mlb_teams_schedules_{year}_processed.csv"
 
     if os.path.exists(filepath):
@@ -54,4 +63,8 @@ def load_team_schedule(team: str, year: int) -> pd.DataFrame:
         return df
     else:
         print(f"Missing processed file: {filepath}")
-        
+
+def load_team_schedule(team: str, year: int) -> pd.DataFrame:
+    df = schedule_and_record(year, team)
+    processed_df = create_features(df)
+    return processed_df
