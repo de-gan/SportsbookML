@@ -57,5 +57,3 @@ Run Dif. & W/L
 - Lines
 - Over/Under total
 - Line movement?
-## schedule_and_record
-- 
