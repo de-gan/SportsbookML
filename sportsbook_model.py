@@ -6,9 +6,10 @@ warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 import pandas as pd
 from src.load_process import load_team_schedule, load_all_team_data, load_team_schedule_CSV
 from src.lgbm_model import train_lgbm_regression_model, train_lgbm_classification_model
+from src.pitchers import get_starter_stats, get_all_boxscores
 
 #
-# Load all team data for 2023
+# Load all team data for year
 #
 def get_all_teams_schedule(year: int):
     print(f"Loading all team data for {year}...")
@@ -36,13 +37,7 @@ def get_team_scheduleCSV(team: str, year: int):
     print(df.head())
     
 #get_team_schedule('NYY', 2024)
-#get_all_teams_schedule(2024)
-schedules_2024 = load_all_team_data(2024)
+get_all_teams_schedule(2023)
+#schedules_2024 = load_all_team_data(2024)
 #train_lgbm_regression_model(2024, schedules_2024)
-train_lgbm_classification_model(2024, schedules_2024)
-
-#df = schedule_nyy.drop(columns=['Date', 'Tm', 'W-L', 'GB', 'Win', 'Loss'])
-#print(df.head())
-#correlation_matrix = df.corr()
-#sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm")
-#plt.show()
+#train_lgbm_classification_model(2024, schedules_2024)

@@ -4,9 +4,43 @@ import pandas as pd
 from pybaseball import schedule_and_record
 
 from src.feature_engineering import create_features
+from src.pitchers import get_all_boxscores
+
+full_to_abbrev = {
+    'Arizona D\'Backs':       'ARI',
+    'Atlanta Braves':         'ATL',
+    'Baltimore Orioles':      'BAL',
+    'Boston Red Sox':         'BOS',
+    'Chicago Cubs':           'CHC',
+    'Chicago White Sox':      'CHW',
+    'Cincinnati Reds':        'CIN',
+    'Cleveland Guardians':    'CLE',
+    'Colorado Rockies':       'COL',
+    'Detroit Tigers':         'DET',
+    'Houston Astros':         'HOU',
+    'Kansas City Royals':     'KCR',
+    'Los Angeles Angels':     'LAA',
+    'Los Angeles Dodgers':    'LAD',
+    'Miami Marlins':          'MIA',
+    'Milwaukee Brewers':      'MIL',
+    'Minnesota Twins':        'MIN',
+    'New York Mets':          'NYM',
+    'New York Yankees':       'NYY',
+    'Oakland Athletics':      'OAK',
+    'Philadelphia Phillies':  'PHI',
+    'Pittsburgh Pirates':     'PIT',
+    'San Diego Padres':       'SDP',
+    'Seattle Mariners':       'SEA',
+    'San Francisco Giants':   'SFG',
+    'St. Louis Cardinals':    'STL',
+    'Tampa Bay Rays':         'TBR',
+    'Texas Rangers':          'TEX',
+    'Toronto Blue Jays':      'TOR',
+    'Washington Nationals':   'WSN'
+}
 
 #
-# Load and process team data for all MLB teams for a given year.]
+# Load and process team data for all MLB teams for a given year.
 # Returns a DataFrame containing the schedules and records of all teams (Processed).
 #
 def load_all_team_data(year: int) -> pd.DataFrame:
@@ -33,10 +67,42 @@ def load_all_team_data(year: int) -> pd.DataFrame:
         except Exception as e:
             print(f"Error loading {team}: {e}")
 
-    all_teams_df = pd.concat(raw_team_schedules.values(), ignore_index=True)
-    all_teams_df.to_csv(rawpath, index=False)
+    raw_df = pd.concat(raw_team_schedules.values(), ignore_index=True)
     
-    return process_all_teams_data(year, all_teams_df)
+    box_df = get_all_boxscores(year)
+    raw_df['Game_Number'] = (
+    raw_df['Date']
+          .str.extract(r'\((\d+)\)$', expand=False)   # pulls out “1” or “2”
+          .fillna('1')                               # single game → game 1
+          .astype(int)
+    )
+    raw_df['Date'] = raw_df['Date'].str.replace(r'\s*\(\d+\)$', '', regex=True)
+
+    box_df['Game_Number'] = box_df.groupby(
+        ['Date','Tm','Opp']
+    ).cumcount() + 1
+
+    box_df['Tm'] = box_df['Tm'].map(full_to_abbrev)
+    box_df['Opp'] = box_df['Opp'].map(full_to_abbrev)
+
+    box_df['Date'] = pd.to_datetime(box_df['Date'], format='%B %d, %Y')
+    box_df['Date'] = box_df['Date'].dt.strftime('%A, %b %-d')
+
+    boxOpp_df = box_df.copy()
+    boxOpp_df.rename(columns={'Tm': 'Opp', 'Opp': 'Tm'}, inplace=True)
+
+    boxLong_df = pd.concat([box_df, boxOpp_df], ignore_index=True)
+    merged_df = pd.merge(
+        raw_df,
+        boxLong_df,
+        on=['Date', 'Tm', 'Opp', 'Game_Number'],
+        how='left',
+        suffixes=('', '_p')
+    )
+    
+    merged_df.to_csv(rawpath, index=False)
+    
+    return process_all_teams_data(year, merged_df)
 
 #
 # Process the raw teams data by creating features and cleaning the DataFrame.
@@ -87,7 +153,7 @@ def get_opponent_features(df: pd.DataFrame) -> pd.DataFrame:
             continue
         
         # Extract relevant opponent stats (add prefix)
-        opp_features = opp_game.iloc[0].drop(['Tm', 'Opp', 'Home_Away', 'W/L', 'R', 'RA', 'W-L', 'Win', 'Loss', 'D/N'])
+        opp_features = opp_game.iloc[0].drop(['Tm', 'Opp', 'Home_Away', 'W/L', 'R', 'RA', 'W-L', 'D/N', 'Boxscore'])
         opp_features.index = ['Opp_' + col for col in opp_features.index]
         
         # Combine row and opponent features
