@@ -6,9 +6,12 @@ import pandas as pd
 from pandas.errors import ParserError
 import numpy as np
 import warnings
+import unicodedata
 from datetime import datetime, date
 from bs4 import BeautifulSoup, Comment
-from pybaseball import playerid_lookup, statcast_pitcher
+from pybaseball import playerid_lookup, statcast_pitcher, pitching_stats
+
+from src.war import get_pitcher_war_on_date
 
 requests_cache.install_cache('bbref_cache', expire_after=86400)
 session = requests_cache.CachedSession()
@@ -56,7 +59,7 @@ def get_all_boxscores(year: int) -> pd.DataFrame:
     schedule_df = pd.DataFrame(rows)
     return schedule_df
 
-def get_starting_pitcher(box_url: str, team_name: str, game_date, year: int = 2024) -> dict:
+def get_starting_pitcher(box_url: str, team_name: str, game_date, year: int = 2025) -> dict:
     resp = session.get(box_url)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -96,7 +99,6 @@ def get_starting_pitcher(box_url: str, team_name: str, game_date, year: int = 20
     data['SP'] = name
     era_cell = row.find("td", {"data-stat": "earned_run_avg"})
     data['SP_ERA'] = _parse_float(era_cell, 'earned_run_avg')
-    # TODO: Use WAR
     
     player_stats = get_player_stats(data['SP'], game_date, year)
     data.update(player_stats)
@@ -109,32 +111,17 @@ def get_player_stats(player_name: str, game_date, year: int = 2025) -> dict:
             f"⚠️ get_player_stats(): no player_name provided (game_date={game_date}); "
             "returning NaNs for SP stats."
         )
-        return {'K9':np.nan, 'BB9':np.nan, 'WHIP':np.nan, 'HardHit%':np.nan, 'IP':np.nan}
+        return {'SP_K9':np.nan, 'SP_BB9':np.nan, 'SP_WHIP':np.nan, 'SP_HardHit%':np.nan, 'SP_IP':np.nan, 'SP_WAR':np.nan}
     
-    #player_name = player_name.encode("latin-1").decode("utf-8")
     last, first = player_name.split()[-1], player_name.split()[0]
     
-    player_id = pid_df[(pid_df['LASTNAME'] == last) & (pid_df['FIRSTNAME'] == first)]
-    if not player_id.empty:
-        raw_code = player_id['MLBCODE'].iat[0]
-        if pd.notna(raw_code):
-            pid = int(raw_code)
-        else:
-            pid = None
-    else:
-        pid = None
+    pid = get_mlb_pid(last, first)
     
     if pid is None:
-        # Fallback to pybaseball lookup (key_mlbam column)
-        mlb_df = playerid_lookup(last, first)
-        if mlb_df.empty or mlb_df['key_mlbam'].isna().all():
-            warnings.warn(f"No PID found for {player_name}; returning NaNs")
-            return dict(SP_ERA=np.nan, SP_K9=np.nan, SP_BB9=np.nan, SP_WHIP=np.nan, SP_IP=np.nan)
-        pid = int(mlb_df.loc[mlb_df['key_mlbam'].notna(),'key_mlbam'].iat[0])
+        warnings.warn(f"No PID found for {player_name}; returning NaNs")
+        return dict(SP_ERA=np.nan, SP_WAR=np.nan, SP_K9=np.nan, SP_BB9=np.nan, SP_WHIP=np.nan, SP_IP=np.nan)
     
-    if game_date is type(str):
-        game_date = game_date + f" {year}"
-    end_dt = pd.to_datetime(game_date).strftime("%Y-%m-%d")
+    end_dt = normalize_date(game_date, year)
     start_dt = f"{year}-03-01"
     
     try:
@@ -167,24 +154,56 @@ def get_player_stats(player_name: str, game_date, year: int = 2025) -> dict:
     
     # hits + walks allowed
     wh  = df['events'].isin(['single','double','triple','home_run']).sum() + bb
-    whip = (wh / innings) if innings>0 else np.nan
+    whip = (wh / innings) if innings>0 else np.nan    
+    
+    war = get_pitcher_war_on_date(pid, end_dt)
     
     return {
+        'SP_WAR': war,
+        'SP_IP': round(innings,2),
         'SP_K9': round(k9, 2),
         'SP_BB9': round(bb9, 2),
         'SP_WHIP': round(whip,2),
-        'SP_HardHit%': round(hard_hit_pct, 2),
-        'SP_IP': round(innings,2)
+        'SP_HardHit%': round(hard_hit_pct, 2)
     }
 
 def _make_nan_stats():
     return {
+        'SP_WAR':      np.nan,
+        'SP_IP':       np.nan,
         'SP_K9':       np.nan,
         'SP_BB9':      np.nan,
         'SP_WHIP':     np.nan,
-        'SP_HardHit%': np.nan,
-        'SP_IP':       np.nan
+        'SP_HardHit%': np.nan
     }
+    
+def normalize_date(game_date, year):
+    if isinstance(game_date, (pd.Timestamp, datetime)):
+        return game_date.strftime("%Y-%m-%d")
+
+    s = game_date.strip() + f" {year}"
+    dt = datetime.strptime(s, "%A, %b %d %Y")
+    return dt.strftime("%Y-%m-%d")
+
+def get_mlb_pid(last: str, first: str) -> str:
+    player_id = pid_df[(pid_df['LASTNAME'] == last) & (pid_df['FIRSTNAME'] == first)]
+    if not player_id.empty:
+        raw_code = player_id['MLBCODE'].iat[0]
+        if pd.notna(raw_code):
+            pid = int(raw_code)
+        else:
+            pid = None
+    else:
+        pid = None
+    
+    if pid is None:
+        # Fallback to pybaseball lookup (key_mlbam column)
+        mlb_df = playerid_lookup(last, first)
+        if mlb_df.empty or mlb_df['key_mlbam'].isna().all():
+            return None
+        pid = int(mlb_df.loc[mlb_df['key_mlbam'].notna(),'key_mlbam'].iat[0])
+    
+    return str(pid)
 
 #print(get_player_stats("Clarke Schmidt", "2024-05-04", 2024))
 #print(get_starting_pitcher("https://www.baseball-reference.com/boxes/NYA/NYA202405040.shtml", "New York Yankees", "2024-05-04", 2024))

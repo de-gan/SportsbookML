@@ -7,8 +7,8 @@ import random
 from src.pitchers import get_starting_pitcher
 
 full_to_abbrev = {
-    #'Arizona Diamondbacks':   'ARI',
-    'Arizona D\'Backs':       'ARI',
+    'Arizona Diamondbacks':   'ARI',
+    #'Arizona D\'Backs':       'ARI',
     'Atlanta Braves':         'ATL',
     'Baltimore Orioles':      'BAL',
     'Boston Red Sox':         'BOS',
@@ -74,7 +74,7 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
     
     if df['Date'].dtype == object or not pd.api.types.is_datetime64_any_dtype(df['Date']):
         df['Date'] = df['Date'].str.replace(r'\s+\(\d\)', '', regex=True)
-        df['Date'] = pd.to_datetime(df['Date'] + year, format='%A, %b %d %Y')
+        df['Date'] = pd.to_datetime(df['Date'].astype(str) + f' {year}', format='%A, %b %d %Y')
     df.insert(1, 'Month', df['Date'].dt.month)
     df.insert(2, 'DayofWeek', df['Date'].dt.dayofweek)
     

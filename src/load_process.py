@@ -14,7 +14,7 @@ MLB_TEAMS = ['NYY', 'BOS', 'TOR', 'BAL', 'TBR',  # AL East
         'ARI', 'COL', 'LAD', 'SDP', 'SFG']  # NL West
 
 # Retrieve the raw team schedules for a given year.
-def get_team_schedules(year: int = 2025) -> pd.DataFrame:
+def get_teams_schedules(year: int = 2025) -> pd.DataFrame:
     raw_team_schedules = {}
     rawpath = f"data/raw/mlb_teams_schedules_{year}.csv"
 
@@ -80,7 +80,7 @@ def load_all_teams_data(year: int) -> pd.DataFrame:
         df = pd.read_csv(rawpath)
 
     else:
-        df = get_team_schedules(year)
+        df = get_teams_schedules(year)
         
     return process_all_teams_data(year, df)
 
@@ -90,7 +90,6 @@ def load_all_teams_data(year: int) -> pd.DataFrame:
 # Returns a DataFrame containing the processed schedules and records of all teams.
 #
 def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
-    # where we’ll dump the intermediate, per‑team features
     feats_path = f"data/processed/mlb_teams_schedules_{year}_inidividual.csv"
 
     if os.path.exists(feats_path):
@@ -103,7 +102,6 @@ def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
     else:
         done = []
     
-    # 1) Loop over each team, process only their games, append to CSV
     for team in MLB_TEAMS:
         if team in done:
             print(f"— Skipping {team} (already done)")
@@ -113,8 +111,6 @@ def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
         team_df      = df[df['Tm'] == team].copy()
         processed_tm = create_features(year, team_df)
 
-
-        # write header only on first team
         processed_tm.to_csv(
             feats_path,
             mode   = 'a' if os.path.exists(feats_path) else 'w',
@@ -123,7 +119,6 @@ def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
         )
         print(f"✔ Finished {team}")
         
-    # 2) Load the combined features and compute opponent features once
     all_feats = pd.read_csv(
         feats_path,
         on_bad_lines='skip',
@@ -131,7 +126,6 @@ def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
     )
     full = get_opponent_features(all_feats)
 
-    # 3) Save the final, fully‑expanded file
     outpath = f"data/processed/mlb_teams_schedules_{year}.csv"
     full.to_csv(outpath, index=False)
     return full
@@ -167,7 +161,6 @@ def get_opponent_features(df: pd.DataFrame) -> pd.DataFrame:
             continue
         
         # Extract relevant opponent stats (add prefix)
-        opp_features = opp_game.iloc[0].drop(['Tm', 'Opp', 'Home_Away', 'W/L', 'R', 'RA', 'W-L', 'D/N', 'Boxscore'])
         opp_features = opp_game.iloc[0].drop(['Tm', 'Opp', 'Home_Away', 'W/L', 'R', 'RA', 'W-L', 'D/N', 'Boxscore'])
         opp_features.index = ['Opp_' + col for col in opp_features.index]
         
@@ -229,7 +222,7 @@ def update_season_data(year: int = 2025):
     raw_df must have at least columns ['Date','Tm','Opp',…]
     with Date as datetime64[ns].
     """
-    raw_df = get_team_schedules(year)
+    raw_df = get_teams_schedules(year)
     
     feats_path = f"data/processed/mlb_teams_schedules_{year}_individual.csv"
     final_path = f"data/processed/mlb_teams_schedules_{year}.csv"

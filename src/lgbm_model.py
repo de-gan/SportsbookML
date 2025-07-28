@@ -9,13 +9,13 @@ from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 
 FEATURES = [
     'Home_Away', 'D/N', 'Rank', 'Streak',
-    'SP_ERA', 'SP_K9', 
+    'SP_ERA', 'SP_WAR', 'SP_K9', 
     'SP_BB9', 'SP_WHIP', 'SP_IP', 'SP_HardHit%',
     'Avg_R_MA3', 'Avg_R_MA5', 'Avg_R_MA10',
     'Avg_Ra_MA3', 'Avg_Ra_MA5', 'Avg_Ra_MA10',
     'RunDiff_MA3', 'RunDiff_MA5', 'RunDiff_MA10',
     'Opp_Rank', 'Opp_Streak',
-    'Opp_SP_ERA', 'Opp_SP_K9', 'Opp_SP_BB9',
+    'Opp_SP_ERA', 'Opp_SP_WAR', 'Opp_SP_K9', 'Opp_SP_BB9',
     'Opp_SP_WHIP', 'Opp_SP_IP', 'Opp_SP_HardHit%',
     'Opp_Avg_R_MA3', 'Opp_Avg_R_MA5', 'Opp_Avg_R_MA10',
     'Opp_Avg_Ra_MA3', 'Opp_Avg_Ra_MA5', 'Opp_Avg_Ra_MA10',

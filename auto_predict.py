@@ -1,14 +1,17 @@
 import argparse
 import requests
-import json
 import pandas as pd
 import re
+import time
 from datetime import date, datetime
 from bs4 import BeautifulSoup, Comment
+import requests_cache
 
 from src.feature_engineering import full_to_abbrev
 from src.pitchers import get_player_stats
 from src.lgbm_model import load_clf_model, FEATURES
+
+#requests_cache.clear()
 
 def load_processed_data(year: int) -> pd.DataFrame:
     path = f"data/processed/mlb_teams_schedules_{year}.csv"
@@ -120,7 +123,11 @@ def get_starting_pitcher_from_preview(url: str, team_name: str) -> dict:
             comment = c
             break
     if comment is None:
-        raise RuntimeError(f"Couldn’t find commented table sp_{team_name} in preview")
+        debut = h2.strong.get_text(strip=True)
+        if not debut:
+            raise RuntimeError(f"Couldn’t find commented table sp_{team_name} in preview and not MLB debut")
+        print(f"Warning: No commented table sp_{team_name} in preview, using MLB debut {debut} for {name}")
+        return {"name": name, "ERA": float("nan")}
 
     inner = BeautifulSoup(comment, "html.parser")
 
