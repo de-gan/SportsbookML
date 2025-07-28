@@ -168,6 +168,7 @@ def get_opponent_features(df: pd.DataFrame) -> pd.DataFrame:
         
         # Extract relevant opponent stats (add prefix)
         opp_features = opp_game.iloc[0].drop(['Tm', 'Opp', 'Home_Away', 'W/L', 'R', 'RA', 'W-L', 'D/N', 'Boxscore'])
+        opp_features = opp_game.iloc[0].drop(['Tm', 'Opp', 'Home_Away', 'W/L', 'R', 'RA', 'W-L', 'D/N', 'Boxscore'])
         opp_features.index = ['Opp_' + col for col in opp_features.index]
         
         # Combine row and opponent features
