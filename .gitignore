@@ -1,6 +1,5 @@
 # Data Files
-data/processed/
-data/raw/
+data/
 
 # Models
 models/

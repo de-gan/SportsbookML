@@ -5,7 +5,10 @@ from tqdm import tqdm
 import random
 
 from src.pitchers import get_starting_pitcher
+from src.batting import get_team_batting_metrics
 
+# Arizona D'Backs when creating raw data (for collecting boxscores)
+# Ariszona Diamondbacks when creating processed data 
 full_to_abbrev = {
     'Arizona Diamondbacks':   'ARI',
     #'Arizona D\'Backs':       'ARI',
@@ -52,6 +55,7 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
 
     df['Tm'] = df['Tm'].map(abbrev_to_full)
 
+    # Get starting pitcher stats
     def _scrape_sp(row):
         stats = get_starting_pitcher(
             row['Boxscore'],
@@ -72,6 +76,7 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
     df = pd.concat([df.reset_index(drop=True), sp_stats], axis=1)
     df['Tm'] = df['Tm'].map(full_to_abbrev)
     
+    # Adjust date format
     if df['Date'].dtype == object or not pd.api.types.is_datetime64_any_dtype(df['Date']):
         df['Date'] = df['Date'].str.replace(r'\s+\(\d\)', '', regex=True)
         df['Date'] = pd.to_datetime(df['Date'].astype(str) + f' {year}', format='%A, %b %d %Y')
@@ -81,11 +86,12 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
     df.loc[:, 'cLI'] = pd.to_numeric(df['cLI'], errors='coerce')
     df['cLI'].fillna(0, inplace=True)
     
+    # Shift the streak column
     df['Streak'] = (
         df
-        .groupby('Tm')['Streak']    # for each team
-        .shift(1)                    # move everything down by one
-        .fillna(0)                   # first game has no prior streak
+        .groupby('Tm')['Streak']
+        .shift(1)
+        .fillna(0)
         .astype(int)
     )
     
@@ -99,6 +105,10 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
     df['Home_Away'] = df['Home_Away'].map({'Home': 1, '@': 0})
     df['W/L'] = df['W/L'].replace({'W-wo':'W','L-wo':'L'}).map({'W': 1,'L': 0})
     df['D/N'] = df['D/N'].map({'D': 0, 'N': 1}) # Day = 0, Night = 1
+    
+    # Add batting metrics
+    batting_df = get_team_batting_metrics(year)
+    df = df.merge(batting_df, on='Tm', how='left')
     
     return df
 
