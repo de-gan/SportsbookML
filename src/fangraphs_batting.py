@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 from functools import lru_cache
 from bs4 import BeautifulSoup
+import numpy as np
 
 def strip_link(html):
     return BeautifulSoup(html, "html.parser").get_text()
@@ -33,8 +34,6 @@ def fg_team_snapshot(season: int, as_of: str) -> pd.DataFrame:
     data = resp.json().get('data', [])
     df = pd.DataFrame(data)
 
-    df.loc[:, 'HR/FB%+'] = df['HR'] / (df['FB%+'] * 100) if 'FB%+' in df.columns else 0
-
     important_batting_stats = [
         'Team',
         'HR',
@@ -59,15 +58,28 @@ def fg_team_snapshot(season: int, as_of: str) -> pd.DataFrame:
         'Cent%+',
     ]
 
+    if df.empty:
+        df = pd.DataFrame(columns=important_batting_stats)
+        df.rename(columns={'Team': 'Tm'}, inplace=True)
+        return df
+    
+    if 'FB%+' in df.columns:
+        df['HR/FB%+'] = df['HR'] / (df['FB%+'] * 100)
+    else:
+        df['HR/FB%+'] = np.nan
+
+    df[important_batting_stats] = df[important_batting_stats].round(3)
     df = df[important_batting_stats]
     df['Team'] = df['Team'].apply(strip_link)
+    df.rename(columns={'Team': 'Tm'}, inplace=True)
 
-    # Each team appears once; no need to drop duplicates
     return df
 
+"""
 # Example: get all teams’ batting as of May 1, 2025
 snap = fg_team_snapshot(2025, "2025-03-18")
 snap.to_csv("data/raw/fangraphs_team_snapshot_2025.csv", index=False)
 
 print(snap)
 print(snap.columns.tolist())
+"""

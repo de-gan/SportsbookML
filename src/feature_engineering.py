@@ -5,13 +5,13 @@ from tqdm import tqdm
 import random
 
 from src.pitchers import get_starting_pitcher
-from src.batting import get_team_batting_metrics
+from src.fangraphs_batting import fg_team_snapshot
 
 # Arizona D'Backs when creating raw data (for collecting boxscores)
-# Ariszona Diamondbacks when creating processed data 
+# Arizona Diamondbacks when creating processed data 
 full_to_abbrev = {
-    'Arizona Diamondbacks':   'ARI',
-    #'Arizona D\'Backs':       'ARI',
+    #'Arizona Diamondbacks':   'ARI',
+    'Arizona D\'Backs':       'ARI',
     'Atlanta Braves':         'ATL',
     'Baltimore Orioles':      'BAL',
     'Boston Red Sox':         'BOS',
@@ -45,6 +45,12 @@ full_to_abbrev = {
 
 abbrev_to_full = {abbrev: full for full, abbrev in full_to_abbrev.items()}
 
+_snapshot_cache = {}
+
+def get_snapshot_for_date(season: int, as_of: str):
+    if as_of not in _snapshot_cache:
+        _snapshot_cache[as_of] = fg_team_snapshot(season, as_of)
+    return _snapshot_cache[as_of]
 
 # Team Schedule and Record
 def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> pd.DataFrame:
@@ -107,31 +113,30 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
     df['D/N'] = df['D/N'].map({'D': 0, 'N': 1}) # Day = 0, Night = 1
     
     # Add batting metrics
-    batting_df = get_team_batting_metrics(year)
-    df = df.merge(batting_df, on='Tm', how='left')
-    
-    return df
+    df['Date'] = pd.to_datetime(df['Date'])
+    df['as_of'] = (df['Date'] - pd.Timedelta(days=1)).dt.strftime("%Y-%m-%d")
 
-def test_create_features(year: int, df: pd.DataFrame) -> pd.DataFrame:
-    df['Tm'] = df['Tm'].map(abbrev_to_full)
-    
-    def _scrape_sp(row):
-        stats = get_starting_pitcher(
-            row['Boxscore'],
-            row['Tm'],
-            row['Date'],
-            year
-        )
-        time.sleep(3)
-        return stats
-    
-    records = []
-    for _, row in tqdm(df.iterrows(), total=len(df), desc="Fetching SP stats"):
-        stats = _scrape_sp(row)
-        records.append(stats)
+    # Pull out the Tm rows for each game
+    batting_rows = []
+    for _, row in df.iterrows():
+        snap = get_snapshot_for_date(year, row['as_of'])
+        print("Fetching snapshot for date:", row['as_of'])
+        team_slice = snap[snap['Tm'] == row['Tm']]
+        if team_slice.empty:
+            # build a dict of NaNs for every stat except 'Tm'
+            tm_pref = {c: float('nan') for c in snap.columns if c != 'Tm'}
+        else:
+            tm_vals = team_slice.iloc[0]
+            tm_pref = {
+                c: tm_vals[c] 
+                for c in tm_vals.index
+                if c != 'Tm'
+            }
+            
+        batting_rows.append({**tm_pref})
 
-    sp_stats = pd.DataFrame(records)
-    
-    df = pd.concat([df.reset_index(drop=True), sp_stats], axis=1)
+    batting_df = pd.DataFrame(batting_rows)
+    df = pd.concat([df.reset_index(drop=True), batting_df], axis=1)
+    df.drop(columns=['as_of'], inplace=True)
     
     return df

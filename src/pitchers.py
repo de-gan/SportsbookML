@@ -75,6 +75,7 @@ def get_starting_pitcher(box_url: str, team_name: str, game_date, year: int = 20
         return {
             'SP':       np.nan,
             'SP_ERA':   np.nan,
+            'SP_WAR':   np.nan,
             'SP_WPA':   np.nan,
             'SP_K9':    np.nan,
             'SP_BB9':   np.nan,
@@ -100,6 +101,7 @@ def get_starting_pitcher(box_url: str, team_name: str, game_date, year: int = 20
     era_cell = row.find("td", {"data-stat": "earned_run_avg"})
     data['SP_ERA'] = _parse_float(era_cell, 'earned_run_avg')
     
+    game_date = normalize_date(game_date, year)
     player_stats = get_player_stats(data['SP'], game_date, year)
     data.update(player_stats)
     
@@ -120,8 +122,9 @@ def get_player_stats(player_name: str, game_date, year: int = 2025) -> dict:
     if pid is None:
         warnings.warn(f"No PID found for {player_name}; returning NaNs")
         return dict(SP_ERA=np.nan, SP_WAR=np.nan, SP_K9=np.nan, SP_BB9=np.nan, SP_WHIP=np.nan, SP_IP=np.nan)
-    
-    end_dt = normalize_date(game_date, year)
+
+    end_dt = game_date - pd.Timedelta(days=1)
+    end_dt = end_dt.strftime("%Y-%m-%d")
     start_dt = f"{year}-03-01"
     
     try:
@@ -177,13 +180,14 @@ def _make_nan_stats():
         'SP_HardHit%': np.nan
     }
     
+# Normalize a date string or datetime object to a datetime object
 def normalize_date(game_date, year):
-    if isinstance(game_date, (pd.Timestamp, datetime)):
-        return game_date.strftime("%Y-%m-%d")
-
-    s = game_date.strip() + f" {year}"
-    dt = datetime.strptime(s, "%A, %b %d %Y")
-    return dt.strftime("%Y-%m-%d")
+    if isinstance(game_date, str):
+        gd = f"{game_date} {year}"
+        dt = datetime.strptime(gd, "%A, %b %d %Y")
+    else:
+        dt = pd.to_datetime(game_date)
+    return dt
 
 def get_mlb_pid(last: str, first: str) -> str:
     player_id = pid_df[(pid_df['LASTNAME'] == last) & (pid_df['FIRSTNAME'] == first)]

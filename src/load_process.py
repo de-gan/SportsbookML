@@ -90,7 +90,7 @@ def load_all_teams_data(year: int) -> pd.DataFrame:
 # Returns a DataFrame containing the processed schedules and records of all teams.
 #
 def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
-    feats_path = f"data/processed/mlb_teams_schedules_{year}_inidividual.csv"
+    feats_path = f"data/processed/mlb_teams_schedules_{year}_individual.csv"
 
     if os.path.exists(feats_path):
         done = pd.read_csv(

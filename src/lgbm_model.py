@@ -20,6 +20,12 @@ FEATURES = [
     'Opp_Avg_R_MA3', 'Opp_Avg_R_MA5', 'Opp_Avg_R_MA10',
     'Opp_Avg_Ra_MA3', 'Opp_Avg_Ra_MA5', 'Opp_Avg_Ra_MA10',
     'Opp_RunDiff_MA3', 'Opp_RunDiff_MA5', 'Opp_RunDiff_MA10',
+    'HR', 'RBI', 'H', 'wRC+', 'wOBA', 'SLG+', 'OBP+', 'AVG+',
+    'ISO+', 'HR/FB%+', 'BB%+', 'K%+', 'Spd', 'EV', 'LA',
+    'Barrel%', 'HardHit%', 'Pull%+', 'Oppo%+', 'Cent%+',
+    'Opp_HR', 'Opp_RBI', 'Opp_H', 'Opp_wRC+', 'Opp_wOBA', 'Opp_SLG+', 'Opp_OBP+', 'Opp_AVG+',
+    'Opp_ISO+', 'Opp_HR/FB%+', 'Opp_BB%+', 'Opp_K%+', 'Opp_Spd', 'Opp_EV', 'Opp_LA',
+    'Opp_Barrel%', 'Opp_HardHit%', 'Opp_Pull%+', 'Opp_Oppo%+', 'Opp_Cent%+',
 ]
 
 os.makedirs("models", exist_ok=True)
