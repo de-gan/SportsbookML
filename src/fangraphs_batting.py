@@ -1,14 +1,17 @@
 import requests
 import pandas as pd
+import numpy as np
 from functools import lru_cache
 from bs4 import BeautifulSoup
-import numpy as np
+from joblib import Memory
+
+memory = Memory(location=".fangraphs_cache", verbose=0)
 
 def strip_link(html):
     return BeautifulSoup(html, "html.parser").get_text()
 
 @lru_cache()
-def fg_team_snapshot(season: int, as_of: str) -> pd.DataFrame:
+def fg_team_snapshot_api(season: int, as_of: str) -> pd.DataFrame:
     
     url = 'https://www.fangraphs.com/api/leaders/major-league/data'
     params = {
@@ -35,27 +38,9 @@ def fg_team_snapshot(season: int, as_of: str) -> pd.DataFrame:
     df = pd.DataFrame(data)
 
     important_batting_stats = [
-        'Team',
-        'HR',
-        'RBI',
-        'H',
-        'wRC+',
-        'wOBA',
-        'SLG+',
-        'OBP+',
-        'AVG+',
-        'ISO+',
-        'HR/FB%+',
-        'BB%+',
-        'K%+',
-        'Spd',
-        'EV',
-        'LA',
-        'Barrel%',
-        'HardHit%',
-        'Pull%+',
-        'Oppo%+',
-        'Cent%+',
+        'Team', 'HR', 'RBI', 'H', 'wRC+', 'wOBA', 'SLG+', 'OBP+', 'AVG+', 'ISO+',
+        'HR/FB%+', 'BB%+', 'K%+', 'Spd', 'EV', 'LA', 'Barrel%', 'HardHit%',
+        'Pull%+', 'Oppo%+', 'Cent%+',
     ]
 
     if df.empty:

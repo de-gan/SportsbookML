@@ -5,12 +5,11 @@ from tqdm import tqdm
 import random
 
 from src.pitchers import get_starting_pitcher
-from src.fangraphs_batting import fg_team_snapshot
+from src.fangraphs_batting import fg_team_snapshot_api
 
-# Arizona D'Backs when creating raw data (for collecting boxscores)
+# Arizona D'Backs when creating raw data (for collecting boxscores) or making prediction
 # Arizona Diamondbacks when creating processed data 
 full_to_abbrev = {
-    #'Arizona Diamondbacks':   'ARI',
     'Arizona D\'Backs':       'ARI',
     'Atlanta Braves':         'ATL',
     'Baltimore Orioles':      'BAL',
@@ -43,13 +42,16 @@ full_to_abbrev = {
     'Washington Nationals':   'WSN'
 }
 
-abbrev_to_full = {abbrev: full for full, abbrev in full_to_abbrev.items()}
+full_to_abbrev_proc = full_to_abbrev.copy()
+full_to_abbrev_proc['Arizona Diamondbacks'] = full_to_abbrev_proc.pop('Arizona D\'Backs')
+
+abbrev_to_full = {abbrev: full for full, abbrev in full_to_abbrev_proc.items()}
 
 _snapshot_cache = {}
 
 def get_snapshot_for_date(season: int, as_of: str):
     if as_of not in _snapshot_cache:
-        _snapshot_cache[as_of] = fg_team_snapshot(season, as_of)
+        _snapshot_cache[as_of] = fg_team_snapshot_api(season, as_of)
     return _snapshot_cache[as_of]
 
 # Team Schedule and Record
@@ -80,7 +82,8 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
     sp_stats = pd.DataFrame(records)
     
     df = pd.concat([df.reset_index(drop=True), sp_stats], axis=1)
-    df['Tm'] = df['Tm'].map(full_to_abbrev)
+    
+    df['Tm'] = df['Tm'].map(full_to_abbrev_proc)
     
     # Adjust date format
     if df['Date'].dtype == object or not pd.api.types.is_datetime64_any_dtype(df['Date']):

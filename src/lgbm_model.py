@@ -5,8 +5,6 @@ import lightgbm as lgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, root_mean_squared_error, r2_score
 
-# TODO: Use WAR instead of WPA
-
 FEATURES = [
     'Home_Away', 'D/N', 'Rank', 'Streak',
     'SP_ERA', 'SP_WAR', 'SP_K9', 

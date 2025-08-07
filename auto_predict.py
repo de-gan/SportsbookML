@@ -9,9 +9,7 @@ from bs4 import BeautifulSoup, Comment
 from src.feature_engineering import full_to_abbrev
 from src.pitchers import get_player_stats
 from src.lgbm_model import load_clf_model, FEATURES
-from src.fangraphs_batting import fg_team_snapshot
-
-#requests_cache.clear()
+from src.fangraphs_batting import fg_team_snapshot_api
 
 def load_processed_data(year: int) -> pd.DataFrame:
     path = f"data/processed/mlb_teams_schedules_{year}.csv"
@@ -205,7 +203,7 @@ def build_features_for_event(
     # 3) Fangraphs batting—use "yesterday" as_of
     as_of = (pd.to_datetime(target) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     if as_of not in snapshot_cache:
-        snapshot_cache[as_of] = fg_team_snapshot(year, as_of)
+        snapshot_cache[as_of] = fg_team_snapshot_api(year, as_of)
     snap = snapshot_cache[as_of]
     
     def bat_stats(team_code, prefix):
@@ -284,7 +282,7 @@ def build_features_for_event(
     return pd.Series({ f: data.get(f, float('nan')) for f in FEATURES })
 
 
-def predict_for_date(date_str: str):
+def predict_for_date(date_str: str) -> pd.DataFrame:
     try:
         target = datetime.strptime(date_str, '%Y-%m-%d').date()
     except ValueError:
@@ -318,11 +316,28 @@ def predict_for_date(date_str: str):
     for ev in records:
         feats.append(build_features_for_event(ev, raw, snap_cache, target.year))
     X = pd.DataFrame(feats, columns=FEATURES)
-    X.to_csv("data/processed/today.csv", index=False)
+    #X.to_csv("data/processed/today.csv", index=False)
     print(X)
 
     clf = load_clf_model("models/wl_lgbm.txt")
     probs = clf.predict(X)
+    
+    probs_df = pd.DataFrame(records)
+    probs_df["Prob_Home_Win"] = probs.round(3)
+    probs_df["Prob_Away_Win"] = (1 - probs_df["Prob_Home_Win"]).round(3)
+    probs_df["game_id"] = probs_df.index
+    probs_df = probs_df.rename(columns={"Tm": "Home", "Opp": "Away"})
+    
+    wide = probs_df[["game_id", "Home", "Away", "Prob_Home_Win", "Prob_Away_Win"]]
+
+    # One team per row:
+    home_teams = wide[["game_id", "Home", "Prob_Home_Win"]].rename(
+        columns={"Home": "Team", "Prob_Home_Win": "Model_Prob"})
+    away_teams = wide[["game_id", "Away", "Prob_Away_Win"]].rename(
+        columns={"Away": "Team", "Prob_Away_Win": "Model_Prob"})
+    long = pd.concat([home_teams, away_teams], ignore_index=True)
+    
+    #long.to_csv("data/processed/today.csv", index=False)
 
     for ev, p in zip(records, probs):
         home, away = ev["Tm"], ev["Opp"]
@@ -333,6 +348,8 @@ def predict_for_date(date_str: str):
         # only show the “favorite”
         if win_prob > 0.5:
             print(f"{home} vs {away} → {winner} win probability = {win_prob:.1%}")
+    
+    return long
 
 
 def main():

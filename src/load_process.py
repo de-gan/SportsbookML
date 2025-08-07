@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import requests_cache
 
 from pybaseball import schedule_and_record
 
@@ -17,6 +18,8 @@ MLB_TEAMS = ['NYY', 'BOS', 'TOR', 'BAL', 'TBR',  # AL East
 def get_teams_schedules(year: int = 2025) -> pd.DataFrame:
     raw_team_schedules = {}
     rawpath = f"data/raw/mlb_teams_schedules_{year}.csv"
+    
+    requests_cache.clear()
 
     for team in MLB_TEAMS:
         try:
@@ -222,7 +225,7 @@ def update_season_data(year: int = 2025):
     raw_df must have at least columns ['Date','Tm','Opp',…]
     with Date as datetime64[ns].
     """
-    raw_df = get_teams_schedules(year)
+    raw_df = pd.read_csv(f"data/raw/mlb_teams_schedules_{year}.csv", parse_dates=['Date'])
     
     feats_path = f"data/processed/mlb_teams_schedules_{year}_individual.csv"
     final_path = f"data/processed/mlb_teams_schedules_{year}.csv"
@@ -280,7 +283,7 @@ def update_season_data(year: int = 2025):
         #print(tm_feats[['Date','Tm','W/L','Streak']].head(10))
         tm_feats.to_csv(feats_path, mode='a', header=False, index=False)
     
-    all_feats = pd.read_csv(feats_path, parse_dates=['Date'])
+    all_feats = pd.read_csv(feats_path)
     full      = get_opponent_features(all_feats)
     full.to_csv(final_path, index=False)
     print("✅ Updated processed file written to", final_path)
