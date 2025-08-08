@@ -5,6 +5,8 @@ import lightgbm as lgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, root_mean_squared_error, r2_score
 
+from src.load_process import load_all_teams_data
+
 FEATURES = [
     'Home_Away', 'D/N', 'Rank', 'Streak',
     'SP_ERA', 'SP_WAR', 'SP_K9', 
@@ -220,3 +222,12 @@ def load_clf_model(model_path: str) -> lgb.Booster:
     
     model = lgb.Booster(model_file=model_path)
     return model
+
+def create_models():
+    #schedules_2025 = load_all_teams_data(2025)
+    df = load_all_teams_data(2024)
+    #df = pd.concat([schedules_2024, schedules_2025], ignore_index=True)
+    #print(df.columns)
+    train_lgbm_classification_model(df)
+    train_run_diff_model(df)
+    train_run_total_model(df)

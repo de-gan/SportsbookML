@@ -9,6 +9,7 @@ from src.fangraphs_batting import fg_team_snapshot_api
 
 # Arizona D'Backs when creating raw data (for collecting boxscores) or making prediction
 # Arizona Diamondbacks when creating processed data 
+# 2025 season uses Athletics: 'ATH'
 full_to_abbrev = {
     'Arizona D\'Backs':       'ARI',
     'Atlanta Braves':         'ATL',
@@ -29,7 +30,8 @@ full_to_abbrev = {
     'Minnesota Twins':        'MIN',
     'New York Mets':          'NYM',
     'New York Yankees':       'NYY',
-    'Athletics':              'ATH',
+    'Oakland Athletics':      'OAK',
+#   'Athletics':              'ATH',
     'Philadelphia Phillies':  'PHI',
     'Pittsburgh Pirates':     'PIT',
     'San Diego Padres':       'SDP',
@@ -54,7 +56,7 @@ def get_snapshot_for_date(season: int, as_of: str):
         _snapshot_cache[as_of] = fg_team_snapshot_api(season, as_of)
     return _snapshot_cache[as_of]
 
-# Team Schedule and Record
+# Create features for team dataframe
 def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> pd.DataFrame:
     df = df.copy()
     # Drop unwanted columns
@@ -106,9 +108,27 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
     
     # Rolling stats over various windows
     for window in rolling_windows:
-        df[f'Avg_R_MA{window}'] = df['R'].rolling(window=window, min_periods=1).mean().round(3)
-        df[f'Avg_Ra_MA{window}'] = df['RA'].rolling(window=window, min_periods=1).mean().round(3)
-        df[f'RunDiff_MA{window}'] = df['Run_Diff'].rolling(window=window, min_periods=1).mean().round(3)
+        df[f'Avg_R_MA{window}'] = (
+            df['R']
+            .shift(1)
+            .rolling(window=window, min_periods=1)
+            .mean()
+            .round(3)
+        )
+        df[f'Avg_RA_MA{window}'] = (
+            df['RA']
+            .shift(1)
+            .rolling(window=window, min_periods=1)
+            .mean()
+            .round(3)
+        )
+        df[f'RunDiff_MA{window}'] = (
+            df['Run_Diff']
+            .shift(1)
+            .rolling(window=window, min_periods=1)
+            .mean()
+            .round(3)
+        )
     
     # Encode categorical variables
     df['Home_Away'] = df['Home_Away'].map({'Home': 1, '@': 0})

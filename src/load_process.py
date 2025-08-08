@@ -9,7 +9,7 @@ from src.pitchers import get_all_boxscores
 
 MLB_TEAMS = ['NYY', 'BOS', 'TOR', 'BAL', 'TBR',  # AL East
         'CHW', 'CLE', 'DET', 'KCR', 'MIN',  # AL Central
-        'HOU', 'LAA', 'ATH', 'SEA', 'TEX',  # AL West
+        'HOU', 'LAA', 'OAK', 'SEA', 'TEX',  # AL West
         'ATL', 'MIA', 'NYM', 'PHI', 'WSN',  # NL East
         'CHC', 'CIN', 'MIL', 'PIT', 'STL',  # NL Central
         'ARI', 'COL', 'LAD', 'SDP', 'SFG']  # NL West
@@ -88,7 +88,7 @@ def load_all_teams_data(year: int) -> pd.DataFrame:
     return process_all_teams_data(year, df)
 
 #
-# Process the raw teams data by creating features and cleaning the DataFrame.
+# Process the raw teams data one-by-one with computed features and cleaning the DataFrame.
 # Adds opponent features in each row
 # Returns a DataFrame containing the processed schedules and records of all teams.
 #
