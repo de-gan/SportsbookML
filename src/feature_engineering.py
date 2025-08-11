@@ -5,7 +5,7 @@ from tqdm import tqdm
 import random
 
 from src.pitchers import get_starting_pitcher
-from src.fangraphs_batting import fg_team_snapshot_api
+from src.fangraphs_stats import fg_team_snapshot
 
 # Arizona D'Backs when creating raw data (for collecting boxscores) or making prediction
 # Arizona Diamondbacks when creating processed data 
@@ -53,7 +53,7 @@ _snapshot_cache = {}
 
 def get_snapshot_for_date(season: int, as_of: str):
     if as_of not in _snapshot_cache:
-        _snapshot_cache[as_of] = fg_team_snapshot_api(season, as_of)
+        _snapshot_cache[as_of] = fg_team_snapshot(season, as_of)
     return _snapshot_cache[as_of]
 
 # Create features for team dataframe
@@ -106,16 +106,16 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
         .astype(int)
     )
     
-    # Rolling stats over various windows
+    # Rolling stats over various windows (Simple rolling and EWM)
     for window in rolling_windows:
-        df[f'Avg_R_MA{window}'] = (
+        df[f'R_MA{window}'] = (
             df['R']
             .shift(1)
             .rolling(window=window, min_periods=1)
             .mean()
             .round(3)
         )
-        df[f'Avg_RA_MA{window}'] = (
+        df[f'RA_MA{window}'] = (
             df['RA']
             .shift(1)
             .rolling(window=window, min_periods=1)
@@ -129,13 +129,37 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
             .mean()
             .round(3)
         )
+        
+        df[f'R_EWMA{window}'] = (
+            df['R']
+            .shift(1)
+            .ewm(span=window, adjust=False)
+            .mean()
+            .round(3)
+        )
+        
+        df[f'RA_EWMA{window}'] = (
+            df['RA']
+            .shift(1)
+            .ewm(span=window, adjust=False)
+            .mean()
+            .round(3)
+        )
+        
+        df[f'RunDiff_EWMA{window}'] = (
+            df['Run_Diff']
+            .shift(1)
+            .ewm(span=window, adjust=False)
+            .mean()
+            .round(3)
+        )
     
     # Encode categorical variables
     df['Home_Away'] = df['Home_Away'].map({'Home': 1, '@': 0})
     df['W/L'] = df['W/L'].replace({'W-wo':'W','L-wo':'L'}).map({'W': 1,'L': 0})
     df['D/N'] = df['D/N'].map({'D': 0, 'N': 1}) # Day = 0, Night = 1
     
-    # Add batting metrics
+    # Add Fangraphs stats
     df['Date'] = pd.to_datetime(df['Date'])
     df['as_of'] = (df['Date'] - pd.Timedelta(days=1)).dt.strftime("%Y-%m-%d")
 
@@ -143,7 +167,7 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
     batting_rows = []
     for _, row in df.iterrows():
         snap = get_snapshot_for_date(year, row['as_of'])
-        print("Fetching snapshot for date:", row['as_of'])
+        print("Fetching Fangraphs batting stats for date:", row['as_of'])
         team_slice = snap[snap['Tm'] == row['Tm']]
         if team_slice.empty:
             # build a dict of NaNs for every stat except 'Tm'

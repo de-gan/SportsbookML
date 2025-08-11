@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup, Comment
 from src.feature_engineering import full_to_abbrev
 from src.pitchers import get_player_stats
 from src.lgbm_model import load_clf_model, FEATURES
-from src.fangraphs_batting import fg_team_snapshot_api
+from src.fangraphs_stats import fg_team_snapshot
 
 def load_processed_data(year: int) -> pd.DataFrame:
     path = f"data/processed/mlb_teams_schedules_{year}.csv"
@@ -200,10 +200,10 @@ def build_features_for_event(
     #print(f"SP stats for {tm}: {sp_tm_stats}")
     #print(f"SP stats for {opp}: {sp_opp_stats}")
     
-    # 3) Fangraphs batting—use "yesterday" as_of
+    # 3) Fangraphs stats with "yesterday" as_of
     as_of = (pd.to_datetime(target) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     if as_of not in snapshot_cache:
-        snapshot_cache[as_of] = fg_team_snapshot_api(year, as_of)
+        snapshot_cache[as_of] = fg_team_snapshot(year, as_of)
     snap = snapshot_cache[as_of]
     
     def bat_stats(team_code, prefix):

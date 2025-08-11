@@ -7,21 +7,23 @@ from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 
 from src.load_process import load_all_teams_data
 
+# Recently removed:
+# 'EV', 'Opp_EV', 
+# 'Avg_R_MA3', 'Avg_R_MA5', 'Avg_R_MA10', 
+# 'Avg_Ra_MA3', 'Avg_Ra_MA5', 'Avg_Ra_MA10',
+# 'Opp_Avg_R_MA3', 'Opp_Avg_R_MA5', 'Opp_Avg_R_MA10',
+# 'Opp_Avg_Ra_MA3', 'Opp_Avg_Ra_MA5', 'Opp_Avg_Ra_MA10',
 FEATURES = [
     'Home_Away', 'D/N', 'Rank', 'Streak',
     'SP_ERA', 'SP_WAR', 'SP_K9', 
     'SP_BB9', 'SP_WHIP', 'SP_IP', 'SP_HardHit%',
-    'Avg_R_MA3', 'Avg_R_MA5', 'Avg_R_MA10',
-    'Avg_Ra_MA3', 'Avg_Ra_MA5', 'Avg_Ra_MA10',
     'RunDiff_MA3', 'RunDiff_MA5', 'RunDiff_MA10',
     'Opp_Rank', 'Opp_Streak',
     'Opp_SP_ERA', 'Opp_SP_WAR', 'Opp_SP_K9', 'Opp_SP_BB9',
     'Opp_SP_WHIP', 'Opp_SP_IP', 'Opp_SP_HardHit%',
-    'Opp_Avg_R_MA3', 'Opp_Avg_R_MA5', 'Opp_Avg_R_MA10',
-    'Opp_Avg_Ra_MA3', 'Opp_Avg_Ra_MA5', 'Opp_Avg_Ra_MA10',
     'Opp_RunDiff_MA3', 'Opp_RunDiff_MA5', 'Opp_RunDiff_MA10',
     'HR', 'RBI', 'H', 'wRC+', 'wOBA', 'SLG+', 'OBP+', 'AVG+',
-    'ISO+', 'HR/FB%+', 'BB%+', 'K%+', 'Spd', 'EV', 'LA',
+    'ISO+', 'HR/FB%+', 'BB%+', 'K%+', 'Spd', 'LA',
     'Barrel%', 'HardHit%', 'Pull%+', 'Oppo%+', 'Cent%+',
     'Opp_HR', 'Opp_RBI', 'Opp_H', 'Opp_wRC+', 'Opp_wOBA', 'Opp_SLG+', 'Opp_OBP+', 'Opp_AVG+',
     'Opp_ISO+', 'Opp_HR/FB%+', 'Opp_BB%+', 'Opp_K%+', 'Opp_Spd', 'Opp_EV', 'Opp_LA',
@@ -203,7 +205,7 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
         'Importance': model.feature_importance()
     }).sort_values(by='Importance', ascending=False)
     
-    print(feature_importances)
+    print(feature_importances.to_string())
     
     model.save_model("models/wl_lgbm.txt")
     
