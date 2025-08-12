@@ -167,7 +167,7 @@ def create_features(year: int, df: pd.DataFrame, rolling_windows=[3, 5, 10]) -> 
     batting_rows = []
     for _, row in df.iterrows():
         snap = get_snapshot_for_date(year, row['as_of'])
-        print("Fetching Fangraphs batting stats for date:", row['as_of'])
+        print("Fetching Fangraphs stats for date:", row['as_of'])
         team_slice = snap[snap['Tm'] == row['Tm']]
         if team_slice.empty:
             # build a dict of NaNs for every stat except 'Tm'

@@ -51,12 +51,3 @@ def get_pitcher_war_on_date(mlb_code: float, game_date: str) -> float:
 
     return war_series.iloc[0] if not war_series.empty else float("nan")
 
-
-'''
-mlb_code = get_mlb_pid("Skenes", "Paul")
-print (f"MLB Code for Paul Skenes: {mlb_code}")
-
-# pull his WAR as of July 28, 2025
-war = get_pitcher_war_on_date(mlb_code, "2025-07-27")
-print("Skene's WAR on 2025‑07‑27 =", war)
-'''

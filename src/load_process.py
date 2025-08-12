@@ -85,7 +85,7 @@ def load_all_teams_data(year: int) -> pd.DataFrame:
     else:
         df = get_teams_schedules(year)
         
-    return process_all_teams_data(year, df[:5])
+    return process_all_teams_data(year, df)
 
 #
 # Process the raw teams data one-by-one with computed features and cleaning the DataFrame.

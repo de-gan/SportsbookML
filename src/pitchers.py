@@ -208,6 +208,3 @@ def get_mlb_pid(last: str, first: str) -> str:
         pid = int(mlb_df.loc[mlb_df['key_mlbam'].notna(),'key_mlbam'].iat[0])
     
     return str(pid)
-
-#print(get_player_stats("Clarke Schmidt", "2024-05-04", 2024))
-#print(get_starting_pitcher("https://www.baseball-reference.com/boxes/NYA/NYA202405040.shtml", "New York Yankees", "2024-05-04", 2024))

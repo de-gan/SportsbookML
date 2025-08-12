@@ -3,7 +3,7 @@ from urllib3.exceptions import NotOpenSSLWarning
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 
-from src.load_process import update_season_data, get_teams_schedules
+from src.load_process import update_season_data, get_teams_schedules, load_all_teams_data
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today
@@ -37,7 +37,8 @@ def full_updated_odds():
 
     merged.to_csv("data/processed/games_today.csv", index=False)
     
-    
-create_models()
+load_all_teams_data(2025)
+
+#create_models()
 
 #full_updated_odds()
