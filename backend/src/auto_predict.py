@@ -302,7 +302,7 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
     #X.to_csv("data/processed/today.csv", index=False)
     #print(X)
 
-    clf = load_clf_model("models/wl_lgbm.txt")
+    clf = load_clf_model("backend/models/wl_lgbm.txt")
     probs = clf.predict(X)
     
     probs_df = pd.DataFrame(records)
