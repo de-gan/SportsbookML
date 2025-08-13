@@ -6,7 +6,6 @@ import pandas as pd
 from pandas.errors import ParserError
 import numpy as np
 import warnings
-import unicodedata
 from datetime import datetime, date
 from bs4 import BeautifulSoup, Comment
 from pybaseball import playerid_lookup, statcast_pitcher, pitching_stats

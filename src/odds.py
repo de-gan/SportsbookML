@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import numpy as np
 import os
 from datetime import date, timedelta
 
@@ -47,5 +48,43 @@ def get_game_odds_today() -> pd.DataFrame:
     odds_df['Team'] = odds_df["Team"].map(full_to_abbrev)
     
     #print(odds_df)
-    odds_df.to_csv("data/processed/odds.csv", index=False)
+    #odds_df.to_csv("data/processed/odds.csv", index=False)
     return odds_df
+
+def suggest_units(
+    df,
+    *,
+    bankroll_units=100.0,
+    kelly_frac=0.5,
+    min_edge=0.05,
+    min_ev=0.0,
+    max_bankroll_frac=0.02,
+    round_to_units=0.5,
+    odds_col="Odds",
+    prob_col="Model_Prob",
+    edge_col="Edge",
+    ev_col="EV"
+):
+    p = df[prob_col].astype(float)
+    d = df[odds_col].astype(float)
+
+    implied = 1.0 / d
+    edge = df[edge_col].astype(float) if edge_col in df else (p - implied)
+    ev   = df[ev_col].astype(float)   if ev_col   in df else (p * d - 1.0)
+
+    # Full Kelly fraction for decimal odds
+    b = d - 1.0
+    f_full = (b * p - (1 - p)) / b
+    f_full = np.clip(f_full, 0.0, None)
+
+    # Fractional Kelly + cap
+    f_used = np.clip(f_full * kelly_frac, 0.0, max_bankroll_frac)
+
+    # Require edge/EV and positive stake
+    mask = (edge >= min_edge) & (ev >= min_ev) & (f_used > 0)
+
+    raw_units = bankroll_units * f_used
+    units = np.round(raw_units / round_to_units) * round_to_units
+    units = np.where(mask, units, 0.0)
+
+    return units

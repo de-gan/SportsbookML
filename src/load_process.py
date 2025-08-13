@@ -6,10 +6,12 @@ from pybaseball import schedule_and_record
 
 from src.feature_engineering import create_features, full_to_abbrev
 from src.pitchers import get_all_boxscores
+from src.auto_predict import HISTORY
 
+# ATH for 2025, OAK for 2024 and before
 MLB_TEAMS = ['NYY', 'BOS', 'TOR', 'BAL', 'TBR',  # AL East
         'CHW', 'CLE', 'DET', 'KCR', 'MIN',  # AL Central
-        'HOU', 'LAA', 'OAK', 'SEA', 'TEX',  # AL West
+        'HOU', 'LAA', 'ATH', 'SEA', 'TEX',  # AL West
         'ATL', 'MIA', 'NYM', 'PHI', 'WSN',  # NL East
         'CHC', 'CIN', 'MIL', 'PIT', 'STL',  # NL Central
         'ARI', 'COL', 'LAD', 'SDP', 'SFG']  # NL West
@@ -216,6 +218,49 @@ def load_team_schedule_raw_CSV(team: str, year: int) -> pd.DataFrame:
     else:
         print(f"Missing processed file: {filepath}")
 
+
+def logging_actual_winners(processed_df: pd.DataFrame, pred_csv: str = HISTORY):
+    if not os.path.exists(pred_csv):
+        print("No prediction history file found.")
+        return None
+
+    hist = pd.read_csv(pred_csv)
+
+    # normalize dates
+    for df, col in ((hist, "Date"), (processed_df, "Date")):
+        if not pd.api.types.is_datetime64_any_dtype(df[col]):
+            df[col] = pd.to_datetime(df[col], errors="coerce")
+        df[col] = df[col].dt.date
+
+    # get only home games from processed_df
+    home_games = processed_df.loc[processed_df["Home_Away"] == 1].copy()
+    home_games["Home"] = home_games["Tm"]
+    home_games["Away"] = home_games["Opp"]
+
+    # map actual winner from W/L boolean
+    home_games["Actual_Winner"] = home_games.apply(
+        lambda row: row["Home"] if row["W/L"] == 1 else row["Away"], axis=1
+    )
+
+    winners = home_games[["Date", "Home", "Away", "Actual_Winner"]].drop_duplicates()
+
+    # merge into history
+    merged = hist.merge(winners, on=["Date", "Home", "Away"], how="left", suffixes=("","_new"))
+
+    # fill only missing
+    if "Actual_Winner" not in merged.columns:
+        merged["Actual_Winner"] = pd.NA
+    fill = merged["Actual_Winner"].isna() & merged["Actual_Winner_new"].notna()
+    merged.loc[fill, "Actual_Winner"] = merged.loc[fill, "Actual_Winner_new"]
+    merged.drop(columns=["Actual_Winner_new"], inplace=True, errors="ignore")
+
+    # optional correctness tracking
+    if {"Pred_Winner","Actual_Winner"}.issubset(merged.columns):
+        merged["correct"] = (merged["Pred_Winner"] == merged["Actual_Winner"]).astype("Int64")
+
+    merged.to_csv(pred_csv, index=False)
+    return merged
+
 def update_season_data(year: int = 2025):
     """
     Incrementally process any games in raw_df that occur
@@ -284,7 +329,8 @@ def update_season_data(year: int = 2025):
         tm_feats.to_csv(feats_path, mode='a', header=False, index=False)
     
     all_feats = pd.read_csv(feats_path)
-    full      = get_opponent_features(all_feats)
+    full = get_opponent_features(all_feats)
     full.to_csv(final_path, index=False)
+    #logging_actual_winners(full)
     print("✅ Updated processed file written to", final_path)
     return full

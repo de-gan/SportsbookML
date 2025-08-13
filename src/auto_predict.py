@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import re
 import time
+import os
 from datetime import date, datetime
 from bs4 import BeautifulSoup, Comment
 
@@ -10,6 +11,8 @@ from src.feature_engineering import full_to_abbrev
 from src.pitchers import get_player_stats
 from src.lgbm_model import load_clf_model, FEATURES
 from src.fangraphs_stats import fg_team_snapshot
+
+HISTORY = "data/pred_history.csv"
 
 def load_processed_data(year: int) -> pd.DataFrame:
     path = f"data/processed/mlb_teams_schedules_{year}.csv"
@@ -66,6 +69,7 @@ def get_todays_slate(target: date = date.today()) -> pd.DataFrame:
         print(f"No games found for {target.isoformat()}")
     return slate
 
+# TODO: Fix this function
 def get_slate_for_date(target: date) -> pd.DataFrame:
     """
     Get the MLB slate for a given date, either from today's games or from
@@ -141,64 +145,57 @@ def build_features_for_event(
     year: the season year, e.g. 2025
     """
     tm, opp = event['Tm'], event['Opp']
-    target = event['Date']  # a pd.Timestamp or python date
+    target = event['Date']
     
     if raw_schedule_df['Date'].dtype == object or not pd.api.types.is_datetime64_any_dtype(raw_schedule_df['Date']):
         raw_schedule_df['Date'] = raw_schedule_df['Date'].str.replace(r'\s+\(\d\)', '', regex=True)
         raw_schedule_df['Date'] = pd.to_datetime(raw_schedule_df['Date'].astype(str) + f' {year}', format='%A, %b %d %Y')
     
     # 1) find that team’s last raw boxscore row (strictly before game date)
-    def last_raw_features(team_code):
-        df = raw_schedule_df.copy()
-        
-        # now filter by the date‐only comparison
-        mask = (
-            (df['Tm'] == team_code)
-            & (df['Date'].dt.date < target)
-        )
-        hist = df.loc[mask].sort_values('Date')
+    def last_raw_features(team_code, windows=(3,5,10)):
+        hist = (raw_schedule_df.loc[(raw_schedule_df['Tm'] == team_code) &
+                                    (raw_schedule_df['Date'].dt.date < target)]
+                .sort_values('Date'))
         if hist.empty:
             raise ValueError(f"No prior row for {team_code} before {target}")
         
-        R   = hist['R']
-        RA  = hist['RA']
+        R = hist['R'].astype(float)
+        RA = hist['RA'].astype(float)
         Diff = R - RA
         last = hist.iloc[-1]
         
-        last = hist.iloc[-1]
-        return {
-            'Rank':          last['Rank'],
-            'Streak':        last['Streak'],
-            'Avg_R_MA3':         R.tail(3).mean().round(3),
-            'Avg_R_MA5':         R.tail(5).mean().round(3),
-            'Avg_R_MA10':        R.tail(10).mean().round(3),
-            'Avg_Ra_MA3':        RA.tail(3).mean().round(3),
-            'Avg_Ra_MA5':        RA.tail(5).mean().round(3),
-            'Avg_Ra_MA10':       RA.tail(10).mean().round(3),
-            'RunDiff_MA3':   Diff.tail(3).mean().round(3),
-            'RunDiff_MA5':   Diff.tail(5).mean().round(3),
-            'RunDiff_MA10':  Diff.tail(10).mean().round(3),
-            'W/L':           last['W/L'],
-            'Streak':        last['Streak'],
+        feat = {
+            'Rank':         last['Rank'],
+            'Streak':       last['Streak'],
+            'W/L':          last['W/L'],
         }
+        
+        for w in windows:
+            feat[f'R_MA{w}'] = R.rolling(w, min_periods=1).mean().iloc[-1].round(3)
+            feat[f'RA_MA{w}'] = RA.rolling(w, min_periods=1).mean().iloc[-1].round(3)
+            feat[f'RunDiff_MA{w}'] = Diff.rolling(w, min_periods=1).mean().iloc[-1].round(3)
+            feat[f'R_EWMA{w}'] = R.ewm(span=w, adjust=False).mean().iloc[-1].round(3)
+            feat[f'RA_EWMA{w}'] = RA.ewm(span=w, adjust=False).mean().iloc[-1].round(3)
+            feat[f'RunDiff_EWMA{w}'] = Diff.ewm(span=w, adjust=False).mean().iloc[-1].round(3)
+        
+        return feat
     
     home_raw = last_raw_features(tm)
     opp_raw  = last_raw_features(opp)
     
-    # 2) SP preview + statcast stats
+    # 2) SP preview + stats
     sp_tm  = get_starting_pitcher_from_preview(event['url'], tm)
     #print(f"Found SP for {tm}: {sp_tm['name']} with ERA {sp_tm['ERA']}")
     time.sleep(0.5)
     sp_opp = get_starting_pitcher_from_preview(event['url'], opp)
     #print(f"Found SP for {opp}: {sp_opp['name']} with ERA {sp_opp['ERA']}")
+    
+    # Retrieve SP stats including WAR
     sp_tm_stats  = get_player_stats(sp_tm['name'], target, year)
     sp_opp_stats = get_player_stats(sp_opp['name'], target, year)
-    # override ERA with the preview ERA
-    sp_tm_stats['SP_ERA']   = sp_tm['ERA']
-    sp_opp_stats['SP_ERA']  = sp_opp['ERA']
-    
-    #print(f"SP stats for {tm}: {sp_tm_stats}")
-    #print(f"SP stats for {opp}: {sp_opp_stats}")
+    # Override ERA with the preview ERA
+    sp_tm_stats['SP_ERA'] = sp_tm['ERA']
+    sp_opp_stats['SP_ERA'] = sp_opp['ERA']
     
     # 3) Fangraphs stats with "yesterday" as_of
     as_of = (pd.to_datetime(target) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
@@ -206,63 +203,51 @@ def build_features_for_event(
         snapshot_cache[as_of] = fg_team_snapshot(year, as_of)
     snap = snapshot_cache[as_of]
     
-    def bat_stats(team_code, prefix):
-        sl = snap[snap['Tm']==team_code]
+    def fg_stats(team_code, prefix):
+        sl = snap[snap['Tm'] == team_code]
         if sl.empty:
-            # fill all batting cols with NaN
-            return { f"{prefix}_{c}": float('nan') 
+            # fill all cols with NaN
+            return { f"{prefix}{c}": float('nan') 
                      for c in sl.columns if c!='Tm' }
         row = sl.iloc[0]
         return { f"{prefix}{c}": row[c] for c in row.index if c!='Tm' }
     
-    tm_bat  = bat_stats(tm,  '')
-    opp_bat = bat_stats(opp, 'Opp_')
+    tm_fg  = fg_stats(tm,  '')
+    opp_fg = fg_stats(opp, 'Opp_')
+    
+    # Find current streaks
+    h_win = home_raw['W/L'] in ('W', 'W-wo')    
+    h_streak = home_raw['Streak']
+    if h_streak > 0: h_streak += 1 if h_win else -1
+    elif h_streak < 0: h_streak -= 1 if h_win else -1
+    else: h_streak = 1 if h_win else -1
+        
+    o_win = opp_raw['W/L'] in ('W', 'W-wo')
+    o_streak = opp_raw['Streak']
+    if o_streak > 0: o_streak += 1 if o_win else -1
+    elif o_streak < 0: o_streak -= 1 if o_win else -1
+    else: o_streak = 1 if o_win else -1
     
     # 4) assemble into a single dict
-    data = {}
-    
-    # Handle streak with W/L
-    if home_raw['W/L'] == 'W-wo' or home_raw['W/L'] == 'W':
-        h_win = True
-    else:
-        h_win = False
-        
-    h_streak = home_raw['Streak']
-    if h_streak > 0:
-        h_streak += 1 if h_win else -1
-    elif h_streak < 0:
-        h_streak -= 1 if h_win else -1
-    else:
-        h_streak = 1 if h_win else -1
-        
-    if opp_raw['W/L'] == 'W-wo' or opp_raw['W/L'] == 'W':
-        o_win = True
-    else:
-        o_win = False
-        
-    o_streak = home_raw['Streak']
-    if o_streak > 0:
-        o_streak += 1 if o_win else -1
-    elif o_streak < 0:
-        o_streak -= 1 if o_win else -1
-    else:
-        o_streak = 1 if o_win else -1
-    
-    data['Home_Away'] = 1
-    data['Streak']        = h_streak
-    data['Opp_Streak']        = o_streak
+    data = {
+        'Home_Away': 1,
+        'Streak': h_streak,
+        'Opp_Streak': o_streak,
+        'D/N': event['D/N'],
+    }
 
     base = [
         "Rank",
-        "Avg_R_MA3", "Avg_R_MA5", "Avg_R_MA10",
-        "Avg_Ra_MA3", "Avg_Ra_MA5", "Avg_Ra_MA10",
-        "RunDiff_MA3", "RunDiff_MA5", "RunDiff_MA10"
+        "R_MA3", "R_MA5", "R_MA10",
+        "RA_MA3", "RA_MA5", "RA_MA10",
+        "RunDiff_MA3", "RunDiff_MA5", "RunDiff_MA10",
+        "R_EWMA3", "R_EWMA5", "R_EWMA10",
+        "RA_EWMA3", "RA_EWMA5", "RA_EWMA10",
+        "RunDiff_EWMA3", "RunDiff_EWMA5", "RunDiff_EWMA10",
     ]
     
     for feat in base:
-        # home side
         data[feat] = home_raw[feat]
-        # away/opponent side: just prefix with "Opp_"
         data["Opp_" + feat] = opp_raw[feat]
     
     # SP fields
@@ -271,13 +256,10 @@ def build_features_for_event(
     for k,v in sp_opp_stats.items():
         data[f"Opp_{k}"] = v
     
-    # batting
-    data.update(tm_bat)
-    data.update(opp_bat)
-    
-    # D/N
-    data['D/N'] = event['D/N']
-    
+    # Fangraphs stats
+    data.update(tm_fg)
+    data.update(opp_fg)
+        
     # now turn into a Series in your FEATURES order
     return pd.Series({ f: data.get(f, float('nan')) for f in FEATURES })
 
@@ -317,7 +299,7 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
         feats.append(build_features_for_event(ev, raw, snap_cache, target.year))
     X = pd.DataFrame(feats, columns=FEATURES)
     #X.to_csv("data/processed/today.csv", index=False)
-    print(X)
+    p#rint(X)
 
     clf = load_clf_model("models/wl_lgbm.txt")
     probs = clf.predict(X)
@@ -339,15 +321,28 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
     
     #long.to_csv("data/processed/today.csv", index=False)
 
+    rows = []
     for ev, p in zip(records, probs):
         home, away = ev["Tm"], ev["Opp"]
-        # if p>=0.5 home is the bet, else away
         winner   = home if p >= 0.5 else away
         win_prob = p    if p >= 0.5 else 1 - p
 
-        # only show the “favorite”
         if win_prob > 0.5:
             print(f"{home} vs {away} → {winner} win probability = {win_prob:.1%}")
+    
+        rows.append({
+            "Date": date_str,
+            "Home": home,
+            "Away": away,
+            "Pred_Winner": winner,
+            "Pred_Prob": round(float(win_prob), 4),
+            "Actual_Winner": pd.NA,
+        })
+
+    cols = ["Date","Home","Away","Pred_Winner","Pred_Prob","Actual_Winner"]
+    df = pd.DataFrame(rows, columns=cols)
+    exists = os.path.exists(HISTORY)
+    df.to_csv(HISTORY, mode="a", header=not exists, index=False)
     
     return long
 
