@@ -3,23 +3,13 @@ from urllib3.exceptions import NotOpenSSLWarning
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 
-from src.load_process import update_season_data, get_teams_schedules, load_all_teams_data
+from src.load_process import update_season_data, get_teams_schedules
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today, suggest_units
 
-def full_updated_odds():
-    # Retrieve up-to-date raw game data
-    #get_teams_schedules(2025)
-
-    # Update processed data
-    #update_season_data()
-
-    # Create LightGBM models
-    #create_models()
-
-    # Make predictions for today's games
-    pred_df = predict_for_date("2025-08-12")
+def predict_and_odds(date: str):
+    pred_df = predict_for_date(date)
     odds_df = get_game_odds_today()
 
     merged = pred_df.merge(odds_df, on=["Team"], how="left")
@@ -42,10 +32,23 @@ def full_updated_odds():
     print(bets_to_place.to_string(index=False))
 
     merged.to_csv("data/processed/games_today.csv", index=False)
+
+def full_updated_odds(date: str):
+    # Retrieve up-to-date raw game data
+    get_teams_schedules(2025)
+
+    # Update processed data
+    update_season_data()
+
+    # Create LightGBM models
+    create_models()
+    
+    predict_and_odds(date)    
     
 #get_teams_schedules(2025)
 #load_all_teams_data(2025)
 
 #create_models()
 
-full_updated_odds()
+#full_updated_odds()
+predict_and_odds("2025-08-13")

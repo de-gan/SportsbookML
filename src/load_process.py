@@ -6,7 +6,8 @@ from pybaseball import schedule_and_record
 
 from src.feature_engineering import create_features, full_to_abbrev
 from src.pitchers import get_all_boxscores
-from src.auto_predict import HISTORY
+
+HISTORY = "data/pred_history.csv"
 
 # ATH for 2025, OAK for 2024 and before
 MLB_TEAMS = ['NYY', 'BOS', 'TOR', 'BAL', 'TBR',  # AL East
@@ -331,6 +332,6 @@ def update_season_data(year: int = 2025):
     all_feats = pd.read_csv(feats_path)
     full = get_opponent_features(all_feats)
     full.to_csv(final_path, index=False)
-    #logging_actual_winners(full)
+    logging_actual_winners(full)
     print("✅ Updated processed file written to", final_path)
     return full

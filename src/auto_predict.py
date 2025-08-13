@@ -95,7 +95,8 @@ def get_starting_pitcher_from_preview(url: str, team_name: str) -> dict:
 
     heading = soup.find("div", id=f"sp_{team_name}_sh")
     if not heading:
-        raise RuntimeError(f"Couldn’t find sp_{team_name}_sh on {team_name}")
+        print(f"Couldn’t find sp_{team_name}_sh on {team_name}")
+        return {"name": "", "ERA": float("nan")}
 
     h2 = heading.find("h2")
     if not h2 or not h2.a:
@@ -299,7 +300,7 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
         feats.append(build_features_for_event(ev, raw, snap_cache, target.year))
     X = pd.DataFrame(feats, columns=FEATURES)
     #X.to_csv("data/processed/today.csv", index=False)
-    p#rint(X)
+    #print(X)
 
     clf = load_clf_model("models/wl_lgbm.txt")
     probs = clf.predict(X)
