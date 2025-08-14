@@ -9,7 +9,7 @@ from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today, suggest_units
 
-def predict_and_odds(date: str):
+def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, max_bet_frac: float):
     pred_df = predict_for_date(date)
     odds_df = get_game_odds_today()
 
@@ -21,10 +21,10 @@ def predict_and_odds(date: str):
     merged["EV"] = (merged["Model_Prob"] * merged["Odds"] - 1).round(3)
     merged["Units"] = suggest_units(
         merged,
-        bankroll_units=100.0,
-        kelly_frac=0.25,
-        min_edge=0.06,
-        max_bankroll_frac=0.02,
+        bankroll_units=bankroll,
+        kelly_frac=kelly,
+        min_edge=min_edge,
+        max_bankroll_frac=max_bet_frac,
         round_to_units=0.01,
     )
     
@@ -34,7 +34,7 @@ def predict_and_odds(date: str):
 
     merged.to_csv("data/processed/games_today.csv", index=False)
 
-def full_updated_odds(date: str):
+def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, min_edge: float = 0.05, max_bet_frac: float = 0.02):
     # Retrieve up-to-date raw game data
     get_teams_schedules(2025)
 
@@ -44,7 +44,7 @@ def full_updated_odds(date: str):
     # Create LightGBM models
     #create_models()
     
-    predict_and_odds(date)    
+    predict_and_odds(date, bankroll, kelly, min_edge, max_bet_frac)    
 
 if __name__ == '__main__':
     d = date.today().strftime("%Y-%m-%d")
