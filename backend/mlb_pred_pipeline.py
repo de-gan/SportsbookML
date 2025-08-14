@@ -14,7 +14,8 @@ def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, 
     odds_df = get_game_odds_today()
 
     merged = pred_df.merge(odds_df, on=["Team"], how="left")
-    merged.drop(columns=["home_team", "away_team"], inplace=True)
+    # Keep home_team and away_team columns so downstream consumers can
+    # reconstruct full matchups from the CSV output.
 
     merged["Implied_Odds"] = (1 / merged["Odds"]).round(3)
     merged["Edge"] = (merged["Model_Prob"] - merged["Implied_Odds"]).round(3)
