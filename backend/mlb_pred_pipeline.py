@@ -3,6 +3,7 @@ from urllib3.exceptions import NotOpenSSLWarning
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 
+from datetime import date
 from src.load_process import update_season_data, get_teams_schedules
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
@@ -41,14 +42,10 @@ def full_updated_odds(date: str):
     update_season_data()
 
     # Create LightGBM models
-    create_models()
+    #create_models()
     
     predict_and_odds(date)    
-    
-#get_teams_schedules(2025)
-#load_all_teams_data(2025)
 
-#create_models()
-
-#full_updated_odds()
-predict_and_odds("2025-08-13")
+if __name__ == '__main__':
+    d = date.today().strftime("%Y-%m-%d")
+    full_updated_odds(d)

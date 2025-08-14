@@ -368,13 +368,15 @@ export default function SportsbookHome() {
               <table className="min-w-full text-sm">
                 <thead className="bg-neutral-100/60 dark:bg-neutral-800/60">
                   <tr className="text-left">
-                    <th className="px-4 py-3">Time</th>
-                    <th className="px-4 py-3">Matchup</th>
-                    <th className="px-4 py-3">Model</th>
+                    <th className="px-4 py-3">Home</th>
+                    <th className="px-4 py-3">Away</th>
+                    <th className="px-4 py-3">Predicted Winner</th>
+                    <th className="px-4 py-3">Probability</th>
                     <th className="px-4 py-3">Book</th>
+                    <th className="px-4 py-3">Odds</th>
                     <th className="px-4 py-3">Edge</th>
-                    <th className="px-4 py-3">Kelly</th>
-                    <th className="px-4 py-3">Note</th>
+                    <th className="px-4 py-3">EV</th>
+                    <th className="px-4 py-3">Bet</th>
                   </tr>
                 </thead>
                 <tbody>
