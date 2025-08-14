@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { TrendingUp, Trophy, Sparkles, RefreshCcw, CloudOff, Download, Filter, HelpCircle, ArrowUpDown, ExternalLink } from "lucide-react";
-import { Card, CardContent } from "./components/ui/card";
-import { Button } from "./components/ui/button";
-import { Input } from "./components/ui/input";
-import { Slider } from "./components/ui/slider";
-import { Switch } from "./components/ui/switch";
-import { Badge } from "./components/ui/badge";
+import { TrendingUp, Trophy, Sparkles, RefreshCcw, CloudOff, Download, Filter, HelpCircle, ExternalLink, HandCoins} from "lucide-react";
+import { Card, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Slider } from "../components/ui/slider";
+import { Switch } from "../components/ui/switch";
+import { Badge } from "../components/ui/badge";
 
 // --- Types ---
 interface Prediction {
@@ -94,9 +93,9 @@ export default function SportsbookHome() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [probViewAmerican, setProbViewAmerican] = useState(false);
-  const [minEdge, setMinEdge] = useState(1.5); // percent points
-  const [sortKey, setSortKey] = useState<"start" | "edge" | "prob" | "alpha">("edge");
-  const [sortDir, setSortDir] = useState<1 | -1>(-1);
+  const [minEdge, setMinEdge] = useState(0.05); // percent points
+  const [sortKey] = useState<"start" | "edge" | "prob" | "alpha">("edge");
+  const [sortDir] = useState<1 | -1>(-1);
 
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
@@ -117,7 +116,7 @@ export default function SportsbookHome() {
         const payload = await res.json();
         setData(payload.predictions ?? []);
         setLastUpdated(payload.last_updated ?? null);
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
         setError("Could not load today's MLB predictions.");
       } finally {
@@ -257,13 +256,13 @@ export default function SportsbookHome() {
   const Header = () => (
     <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-neutral-200 dark:border-neutral-800">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-        <motion.div initial={{opacity:0, y:-10}} animate={{opacity:1, y:0}} transition={{duration:0.4}} className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <div className="p-2 rounded-2xl bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md">
-            <TrendingUp className="w-5 h-5" />
+            <HandCoins className="w-5 h-5" />
           </div>
-          <span className="text-xl font-semibold tracking-tight">EdgeFinder</span>
+          <span className="text-xl font-semibold tracking-tight">UpperHand</span>
           <Badge variant="secondary" className="ml-1">Beta</Badge>
-        </motion.div>
+        </div>
         <nav className="ml-auto flex items-center gap-1">
           <Button variant="ghost" className="gap-2" disabled>
             <Sparkles className="w-4 h-4" /> NFL <span className="opacity-50">(soon)</span>
@@ -271,7 +270,7 @@ export default function SportsbookHome() {
           <Button variant="ghost" className="gap-2" disabled>
             NBA <span className="opacity-50">(soon)</span>
           </Button>
-          <Button variant="ghost" className="gap-2 text-indigo-600">
+          <Button variant="ghost" className="gap-2 text-indigo-500">
             <Trophy className="w-4 h-4" /> MLB
           </Button>
           <Button asChild variant="ghost" className="gap-2">
@@ -289,39 +288,40 @@ export default function SportsbookHome() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Hero */}
         <section className="grid lg:grid-cols-3 gap-6 items-start mb-8">
-          <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{duration:0.5}} className="lg:col-span-2">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">ML Sports Predictions — Focused on Today</h1>
+          <div className="lg:col-span-2">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">MLB Predictions</h1>
             <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
-              Transparent, data-driven picks from machine learning models. Start with MLB moneylines for today's slate,
+              Transparent, data-driven picks from machine learning models using 100+ features to estimate results and gain the upper hand on sportsbooks. Start with MLB moneylines for today's slate,
               with more sports coming soon. Sort by model edge, filter by matchup, and export your board.
             </p>
             <div className="flex flex-wrap gap-3 mt-4">
               <Button onClick={downloadCsv} className="gap-2"><Download className="w-4 h-4"/> Export CSV</Button>
               <Button variant="secondary" onClick={() => window.location.reload()} className="gap-2"><RefreshCcw className="w-4 h-4"/> Refresh</Button>
-              <a href="/methodology" className="inline-flex items-center gap-2 text-indigo-600 hover:underline">
+              <a href="/methodology" className="inline-flex items-center gap-2 text-indigo-500 hover:underline">
                 Methodology <ExternalLink className="w-4 h-4"/>
               </a>
             </div>
             {lastUpdated && (
               <p className="text-sm mt-2 text-neutral-600 dark:text-neutral-400">Last updated: {new Date(lastUpdated).toLocaleString()}</p>
             )}
-          </motion.div>
+          </div>
 
           {/* Kelly Controls */}
-          <motion.div initial={{opacity:0, scale:0.98}} animate={{opacity:1, scale:1}} transition={{duration:0.5}}>
+          <div>
             <Card className="rounded-2xl shadow-md border-neutral-200/70 dark:border-neutral-800/70">
               <CardContent className="p-4 grid gap-4">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4"/>
                   <span className="font-medium">Filters & Betting Controls</span>
                 </div>
-                <Input placeholder="Search team, venue…" value={query} onChange={(e) => setQuery(e.target.value)} />
+                <Input placeholder="Search team" value={query} onChange={(e) => setQuery(e.target.value)} />
                 <div>
                   <div className="flex items-center justify-between mb-2 text-sm">
-                    <span>Min Edge (pp)</span>
-                    <span className="font-semibold">{minEdge.toFixed(1)}</span>
+                    <span>Minimum Edge</span>
+                    <span className="text-neutral-500">(Recommended: 0.04-0.06)</span>
+                    <span className="font-semibold">{minEdge.toFixed(2)}</span>
                   </div>
-                  <Slider value={[minEdge]} min={0} max={10} step={0.5} onValueChange={(v) => setMinEdge(v[0])} />
+                  <Slider className="my-slider accent-white" value={[minEdge]} min={0.01} max={0.2} step={0.01} onValueChange={(v) => setMinEdge(v[0])} />
                 </div>
                 <div className="flex items-center gap-3">
                   <Switch checked={probViewAmerican} onCheckedChange={setProbViewAmerican} id="view-odds" />
@@ -347,7 +347,7 @@ export default function SportsbookHome() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </section>
 
         {/* Table */}
@@ -413,7 +413,9 @@ export default function SportsbookHome() {
                     const favProb = favIsHome ? g.home_ml_prob : g.away_ml_prob;
                     const favOdds = favIsHome ? homeModelOdds : awayModelOdds;
 
-                    const bestEdgeVal = [edgeH, edgeA].filter((v) => v !== undefined).sort((a: any,b: any) => b - a)[0];
+                    const bestEdgeVal = [edgeH, edgeA]
+                      .filter((v): v is number => v !== undefined)
+                      .sort((a, b) => b - a)[0];
 
                     return (
                       <tr key={g.game_id} className="border-t border-neutral-200/60 dark:border-neutral-800/60">
