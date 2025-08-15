@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { TrendingUp, Trophy, Sparkles, RefreshCcw, CloudOff, Download, Filter, HelpCircle, ExternalLink, HandCoins} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Trophy, Sparkles, RefreshCcw, CloudOff, Download, Filter, HelpCircle, ExternalLink, HandCoins} from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -14,12 +14,13 @@ interface Prediction {
   league: string;             // e.g. "MLB"
   home_team: string;
   away_team: string;
+  sportsbook?: string,
   model: string;              // e.g. "mlb_moneyline_v1"
   home_ml_prob: number;       // 0..1 probability home wins
   away_ml_prob: number;       // 0..1 probability away wins
   home_book_odds?: number;    // American odds from a book (optional)
   away_book_odds?: number;    // American odds from a book (optional)
-  edge_home?: number;         // (prob - implied) * 100 (percentage points)
+  edge_home?: number;         // prob - implied (decimal)
   edge_away?: number;
   venue?: string;
   note?: string;              // optional model note
@@ -54,6 +55,9 @@ const fmtOdds = (o: number | undefined) => (o === undefined || Number.isNaN(o) ?
 const fmtMoney = (n: number | undefined) => (n === undefined || Number.isNaN(n) ? "—" : `$${n.toFixed(2)}`);
 const toLocalTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+// --- Constants ---
+const SPORTSBOOKS = ["BetUS", "BetMGM", "FanDuel", "DraftKings"] as const;
+
 // --- Lightweight Internal Tests ---
 function runInternalTests() {
   try {
@@ -65,9 +69,9 @@ function runInternalTests() {
     console.assert(Math.round(americanFromProb(0.6)) === -150, "americanFromProb(0.6) ~ -150");
     console.assert(Math.round(americanFromProb(0.4)) === 150, "americanFromProb(0.4) ~ +150");
 
-    // Edge sanity: model 0.6 vs +100 (0.5 implied) => 10pp
-    const edge = (0.6 - (impliedFromAmerican(100)!)) * 100;
-    console.assert(approxEq(edge, 10, 0.1), "edge 0.6 vs +100 ~ 10pp");
+    // Edge sanity: model 0.6 vs +100 (0.5 implied) => 0.1 (10pp)
+    const edge = 0.6 - impliedFromAmerican(100)!;
+    console.assert(approxEq(edge, 0.1, 0.001), "edge 0.6 vs +100 ~ 0.1");
 
     // Kelly fraction tests
     // +100, p=0.6 => b=1 => f = (1*0.6 - 0.4)/1 = 0.2
@@ -93,16 +97,17 @@ export default function SportsbookHome() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [probViewAmerican, setProbViewAmerican] = useState(false);
-  const [minEdge, setMinEdge] = useState(0.05); // percent points
-  const [sortKey] = useState<"start" | "edge" | "prob" | "alpha">("edge");
-  const [sortDir] = useState<1 | -1>(-1);
+  const [minEdge, setMinEdge] = useState(0.05); // probability difference
+  const [sortKey, setSortKey] = useState<"start" | "edge" | "prob" | "book">("edge");
+  const [sortDir, setSortDir] = useState<1 | -1>(-1);
+  const [selectedBooks, setSelectedBooks] = useState<string[]>([...SPORTSBOOKS]);
 
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   // Bankroll / Kelly controls
   const [bankroll, setBankroll] = useState<string>(""); // keep as string for input control
   const [maxBet, setMaxBet] = useState<string>("");
-  const [kellyMult, setKellyMult] = useState<number>(0.5); // 0..1 (e.g., 0.5 = half Kelly)
+  const [kellyMult, setKellyMult] = useState<number>(0.25); // 0..1 (e.g., 0.5 = half Kelly)
 
   useEffect(() => { runInternalTests(); }, []);
 
@@ -117,6 +122,7 @@ export default function SportsbookHome() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const preds: Prediction[] = (payload.predictions ?? []).map((p: any) => ({
           ...p,
+          sportsbook: p.sportsbook ?? p.book ?? p.Sportsbook,
           home_ml_prob: p.home_ml_prob !== undefined ? Number(p.home_ml_prob) : undefined,
           away_ml_prob: p.away_ml_prob !== undefined ? Number(p.away_ml_prob) : undefined,
           home_book_odds: p.home_book_odds !== undefined ? Number(p.home_book_odds) : undefined,
@@ -139,19 +145,29 @@ export default function SportsbookHome() {
   const bankrollNum = useMemo(() => Number(bankroll), [bankroll]);
   const maxBetNum = useMemo(() => Number(maxBet), [maxBet]);
 
+  const handleSort = (key: "start" | "edge" | "prob" | "book") => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 1 ? -1 : 1));
+    } else {
+      setSortKey(key);
+      setSortDir(-1);
+    }
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return data
+      .filter((g) => selectedBooks.includes(g.sportsbook || ""))
       .filter((g) => q === "" ? true : [g.home_team, g.away_team, g.venue].some((s) => (s || "").toLowerCase().includes(q)))
       .filter((g) => {
         const homeImp = impliedFromAmerican(g.home_book_odds);
         const awayImp = impliedFromAmerican(g.away_book_odds);
-        const edgeH = g.edge_home ?? (homeImp !== undefined ? (g.home_ml_prob - homeImp) * 100 : -Infinity);
-        const edgeA = g.edge_away ?? (awayImp !== undefined ? (g.away_ml_prob - awayImp) * 100 : -Infinity);
+        const edgeH = g.edge_home ?? (homeImp !== undefined ? (g.home_ml_prob - homeImp) : -Infinity);
+        const edgeA = g.edge_away ?? (awayImp !== undefined ? (g.away_ml_prob - awayImp) : -Infinity);
         const bestEdge = Math.max(edgeH, edgeA);
-        return bestEdge >= minEdge || (homeImp === undefined && awayImp === undefined);
+        return bestEdge >= minEdge;
       });
-  }, [data, query, minEdge]);
+  }, [data, query, minEdge, selectedBooks]);
 
   const withKelly = useMemo(() => {
     return filtered.map((g) => {
@@ -195,9 +211,9 @@ export default function SportsbookHome() {
       if (key === "start") {
         return dir * (new Date(a.start_time_utc).getTime() - new Date(b.start_time_utc).getTime());
       }
-      if (key === "alpha") {
-        const as = `${a.away_team} @ ${a.home_team}`.toLowerCase();
-        const bs = `${b.away_team} @ ${b.home_team}`.toLowerCase();
+      if (key === "book") {
+        const as = (a.sportsbook || "").toLowerCase();
+        const bs = (b.sportsbook || "").toLowerCase();
         return dir * (as > bs ? 1 : as < bs ? -1 : 0);
       }
       const aHomeImp = impliedFromAmerican(a.home_book_odds);
@@ -205,12 +221,12 @@ export default function SportsbookHome() {
       const bHomeImp = impliedFromAmerican(b.home_book_odds);
       const bAwayImp = impliedFromAmerican(b.away_book_odds);
       const aEdge = Math.max(
-        (a.edge_home ?? (aHomeImp !== undefined ? (a.home_ml_prob - aHomeImp) * 100 : -Infinity)),
-        (a.edge_away ?? (aAwayImp !== undefined ? (a.away_ml_prob - aAwayImp) * 100 : -Infinity))
+        (a.edge_home ?? (aHomeImp !== undefined ? (a.home_ml_prob - aHomeImp) : -Infinity)),
+        (a.edge_away ?? (aAwayImp !== undefined ? (a.away_ml_prob - aAwayImp) : -Infinity))
       );
       const bEdge = Math.max(
-        (b.edge_home ?? (bHomeImp !== undefined ? (b.home_ml_prob - bHomeImp) * 100 : -Infinity)),
-        (b.edge_away ?? (bAwayImp !== undefined ? (b.away_ml_prob - bAwayImp) * 100 : -Infinity))
+        (b.edge_home ?? (bHomeImp !== undefined ? (b.home_ml_prob - bHomeImp) : -Infinity)),
+        (b.edge_away ?? (bAwayImp !== undefined ? (b.away_ml_prob - bAwayImp) : -Infinity))
       );
       if (key === "edge") return dir * (bEdge - aEdge);
       const aProb = Math.max(a.home_ml_prob, a.away_ml_prob);
@@ -223,28 +239,29 @@ export default function SportsbookHome() {
   const downloadCsv = () => {
     const rows = [
       [
-        "game_id","start_time_local","away_team","home_team","home_prob","away_prob","home_model_odds","away_model_odds","home_book_odds","away_book_odds","edge_home","edge_away",
+        "game_id","start_time_local","away_team","home_team","sportsbook","home_prob","away_prob","home_model_odds","away_model_odds","home_book_odds","away_book_odds","edge_home","edge_away",
       ],
       ...sorted.map((g) => {
         const homeModelOdds = americanFromProb(g.home_ml_prob);
         const awayModelOdds = americanFromProb(g.away_ml_prob);
         const homeImp = impliedFromAmerican(g.home_book_odds);
         const awayImp = impliedFromAmerican(g.away_book_odds);
-        const edgeH = g.edge_home ?? (homeImp !== undefined ? (g.home_ml_prob - homeImp) * 100 : undefined);
-        const edgeA = g.edge_away ?? (awayImp !== undefined ? (g.away_ml_prob - awayImp) * 100 : undefined);
+        const edgeH = g.edge_home ?? (homeImp !== undefined ? (g.home_ml_prob - homeImp) : undefined);
+        const edgeA = g.edge_away ?? (awayImp !== undefined ? (g.away_ml_prob - awayImp) : undefined);
         return [
           g.game_id,
           toLocalTime(g.start_time_utc),
           g.away_team,
           g.home_team,
+          g.sportsbook || "",
           g.home_ml_prob,
           g.away_ml_prob,
           isFinite(homeModelOdds) ? Math.round(homeModelOdds) : "",
           isFinite(awayModelOdds) ? Math.round(awayModelOdds) : "",
           g.home_book_odds ?? "",
           g.away_book_odds ?? "",
-          edgeH?.toFixed(2) ?? "",
-          edgeA?.toFixed(2) ?? "",
+          edgeH !== undefined ? (edgeH * 100).toFixed(2) : "",
+          edgeA !== undefined ? (edgeA * 100).toFixed(2) : "",
         ];
       })
     ];
@@ -297,7 +314,18 @@ export default function SportsbookHome() {
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">MLB Predictions</h1>
             <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
               Transparent, data-driven picks from machine learning models using 100+ features to estimate results and gain the upper hand on sportsbooks. Start with MLB moneylines for today's slate,
-              with more sports coming soon. Sort by model edge, filter by matchup, and export your board.
+              with more sports coming soon. Filter and sort for specific results and export your board.
+            </p>
+            <br></br>
+            <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
+              The Kelly Criterion is a bankroll management strategy that helps you decide how much to wager based on your edge over the sportsbook’s odds. 
+              It aims to maximize long-term growth while reducing the risk of going broke. The formula uses the estimated win probability from the ML model,
+              sportsbooks' odds, and your current bankroll. The Kelly Criterion helps you avoid betting too much when your edge is small and bet more when your advantage is big.
+              Our system automatically applies this method to give you a recommended bet size so you can bet smarter, not just bigger.
+            </p>
+            <br></br>
+            <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
+              Edge is used to calculate the expected value (EV) of a wager. The Kelly Bet is the suggested bet based on your bankroll and Kelly multiplier.
             </p>
             <div className="flex flex-wrap gap-3 mt-4">
               <Button onClick={downloadCsv} className="gap-2"><Download className="w-4 h-4"/> Export CSV</Button>
@@ -321,12 +349,28 @@ export default function SportsbookHome() {
                 </div>
                 <Input placeholder="Search team" value={query} onChange={(e) => setQuery(e.target.value)} />
                 <div>
+                  <label className="text-xs text-neutral-500">Sportsbooks</label>
+                  <select
+                    multiple
+                    value={selectedBooks}
+                    onChange={(e) =>
+                      setSelectedBooks(Array.from(e.target.selectedOptions).map(o => o.value))
+                    }
+                    className="mt-1 w-full rounded border border-neutral-300 bg-white p-2 text-sm h-24 dark:bg-neutral-800 dark:border-neutral-700"
+                  >
+                    {SPORTSBOOKS.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-neutral-500">Use Ctrl/Cmd-click to toggle multiple.</p>
+                </div>
+                <div>
                   <div className="flex items-center justify-between mb-2 text-sm">
                     <span>Minimum Edge</span>
                     <span className="text-neutral-500">(Recommended: 0.04-0.06)</span>
                     <span className="font-semibold">{minEdge.toFixed(2)}</span>
                   </div>
-                  <Slider className="my-slider accent-white" value={[minEdge]} min={-0.5} max={0.5} step={0.01} onValueChange={(v) => setMinEdge(v[0])} />
+                  <Slider className="my-slider accent-white" value={[minEdge]} min={0} max={0.2} step={0.01} onValueChange={(v) => setMinEdge(v[0])} />
                 </div>
                 <div className="flex items-center gap-3">
                   <Switch checked={probViewAmerican} onCheckedChange={setProbViewAmerican} id="view-odds" />
@@ -348,7 +392,7 @@ export default function SportsbookHome() {
                     <span className="font-semibold">{(kellyMult * 100).toFixed(0)}%</span>
                   </div>
                   <Slider value={[kellyMult]} min={0} max={1} step={0.05} onValueChange={(v) => setKellyMult(v[0])} />
-                  <p className="text-xs text-neutral-500 mt-1">0% = no bet, 100% = full Kelly. Default 50%.</p>
+                  <p className="text-xs text-neutral-500 mt-1">0% = no bet, 100% = full Kelly. Default 25%.</p>
                 </div>
               </CardContent>
             </Card>
@@ -373,11 +417,20 @@ export default function SportsbookHome() {
               <table className="min-w-full text-sm">
                 <thead className="bg-neutral-100/60 dark:bg-neutral-800/60">
                   <tr className="text-left">
-                    <th className="px-4 py-3">Time</th>
+                    <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('start')}>
+                      Time {sortKey === 'start' ? (sortDir === 1 ? '▲' : '▼') : '–'}
+                    </th>
                     <th className="px-4 py-3">Matchup</th>
-                    <th className="px-4 py-3">Model Prediction</th>
+                    <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('book')}>
+                      Sportsbook {sortKey === 'book' ? (sortDir === 1 ? '▲' : '▼') : '–'}
+                    </th>
+                    <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('prob')}>
+                      Model Prediction {sortKey === 'prob' ? (sortDir === 1 ? '▲' : '▼') : '–'}
+                    </th>
                     <th className="px-4 py-3">Book Odds</th>
-                    <th className="px-4 py-3">Edge</th>
+                    <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('edge')}>
+                      Edge {sortKey === 'edge' ? (sortDir === 1 ? '▲' : '▼') : '–'}
+                    </th>
                     <th className="px-4 py-3">Kelly Bet</th>
                   </tr>
                 </thead>
@@ -409,8 +462,8 @@ export default function SportsbookHome() {
                     const awayModelOdds = americanFromProb(g.away_ml_prob);
                     const homeImp = impliedFromAmerican(g.home_book_odds);
                     const awayImp = impliedFromAmerican(g.away_book_odds);
-                    const edgeH = g.edge_home ?? (homeImp !== undefined ? (g.home_ml_prob - homeImp) * 100 : undefined);
-                    const edgeA = g.edge_away ?? (awayImp !== undefined ? (g.away_ml_prob - awayImp) * 100 : undefined);
+                    const edgeH = g.edge_home ?? (homeImp !== undefined ? (g.home_ml_prob - homeImp) : undefined);
+                    const edgeA = g.edge_away ?? (awayImp !== undefined ? (g.away_ml_prob - awayImp) : undefined);
 
                     const favIsHome = g.home_ml_prob >= g.away_ml_prob;
                     const favTeam = favIsHome ? g.home_team : g.away_team;
@@ -423,16 +476,18 @@ export default function SportsbookHome() {
                     const negativeEdge = bestEdgeVal !== undefined && bestEdgeVal < 0;
 
                     return (
-                      <tr key={g.game_id} className="border-t border-neutral-200/60 dark:border-neutral-800/60">
+                      <tr key={`${g.game_id}-${g.sportsbook}`} className="border-t border-neutral-200/60 dark:border-neutral-800/60">
                         <td className="px-4 py-3 align-top whitespace-nowrap">{toLocalTime(g.start_time_utc)}</td>
                         <td className="px-4 py-3 align-top">
                           <div className="font-medium">{g.away_team} <span className="opacity-60">@</span> {g.home_team}</div>
                         </td>
+
+                        <td className="px-4 py-3 align-top whitespace-nowrap">{g.sportsbook || "—"}</td>
                         <td className="px-4 py-3 align-top">
                           <div className="flex flex-col gap-1">
                             <div className="text-xs uppercase tracking-wide text-neutral-500">Favored</div>
                             <div className="flex items-center gap-2">
-                              <Badge className="bg-indigo-600">{favTeam}</Badge>
+                              <Badge className="bg-green-600">{favTeam}</Badge>
                               <span className="text-sm">
                                 {probViewAmerican ? fmtOdds(favOdds) : fmtPct(favProb)}
                               </span>
@@ -454,7 +509,7 @@ export default function SportsbookHome() {
                           </div>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <div className={`text-sm font-semibold ${bestEdgeVal !== undefined ? (bestEdgeVal < 0 ? 'text-red-600' : 'text-green-600') : ''}`}>{bestEdgeVal !== undefined ? `${bestEdgeVal.toFixed(2)} pp` : "—"}</div>
+                          <div className={`text-sm font-semibold ${bestEdgeVal !== undefined ? 'text-green-600' : ''}`}>{bestEdgeVal !== undefined ? `${(bestEdgeVal * 100).toFixed(1)} pp` : "—"}</div>
                           <div className="text-xs text-neutral-500">vs book implied</div>
                         </td>
                         <td className="px-4 py-3 align-top text-sm">

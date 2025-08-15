@@ -36,24 +36,29 @@ function handlePredictions(req, res) {
       }
       grouped[gid].rows.push(r);
     });
-    const predictions = Object.values(grouped).map(g => {
-      const homeRow = g.rows.find(r => r.Team === g.home_team);
-      const awayRow = g.rows.find(r => r.Team === g.away_team);
-      return {
-        game_id: g.game_id,
-        start_time_utc: g.commence_time || null,
-        league: 'MLB',
-        home_team: g.home_team,
-        away_team: g.away_team,
-        model: 'mlb_moneyline_v1',
-        home_ml_prob: homeRow ? Number(homeRow.Model_Prob) : undefined,
-        away_ml_prob: awayRow ? Number(awayRow.Model_Prob) : undefined,
-        home_book_odds: homeRow ? decimalToAmerican(homeRow.Odds) : undefined,
-        away_book_odds: awayRow ? decimalToAmerican(awayRow.Odds) : undefined,
-        edge_home: homeRow && homeRow.Edge ? Number(homeRow.Edge) * 100 : undefined,
-        edge_away: awayRow && awayRow.Edge ? Number(awayRow.Edge) * 100 : undefined,
-        note: null,
-      };
+    // Build a prediction entry for every sportsbook represented in the rows
+    const predictions = Object.values(grouped).flatMap(g => {
+      const books = Array.from(new Set(g.rows.map(r => r.Sportsbook || r.book || r.Book)));
+      return books.map(book => {
+        const homeRow = g.rows.find(r => r.Team === g.home_team && (r.Sportsbook === book || r.book === book || r.Book === book));
+        const awayRow = g.rows.find(r => r.Team === g.away_team && (r.Sportsbook === book || r.book === book || r.Book === book));
+        return {
+          game_id: g.game_id,
+          start_time_utc: g.commence_time || null,
+          league: 'MLB',
+          home_team: g.home_team,
+          away_team: g.away_team,
+          sportsbook: book,
+          model: 'mlb_moneyline_v1',
+          home_ml_prob: homeRow ? Number(homeRow.Model_Prob) : undefined,
+          away_ml_prob: awayRow ? Number(awayRow.Model_Prob) : undefined,
+          home_book_odds: homeRow ? decimalToAmerican(homeRow.Odds) : undefined,
+          away_book_odds: awayRow ? decimalToAmerican(awayRow.Odds) : undefined,
+          edge_home: homeRow && homeRow.Edge ? Number(homeRow.Edge) : undefined,
+          edge_away: awayRow && awayRow.Edge ? Number(awayRow.Edge) : undefined,
+          note: null,
+        };
+      });
     });
     const stat = fs.statSync(filePath);
     const body = JSON.stringify({ predictions, last_updated: stat.mtime.toISOString() });

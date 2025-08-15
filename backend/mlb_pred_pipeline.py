@@ -4,7 +4,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 
 from datetime import date
-from src.load_process import update_season_data, get_teams_schedules
+from src.load_process import update_season_data, get_teams_schedules, load_all_teams_data
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today, suggest_units
@@ -48,5 +48,7 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
     predict_and_odds(date, bankroll, kelly, min_edge, max_bet_frac)    
 
 if __name__ == '__main__':
-    d = date.today().strftime("%Y-%m-%d")
-    full_updated_odds(d)
+    #d = date.today().strftime("%Y-%m-%d")
+    #full_updated_odds(d)
+    load_all_teams_data(2023)
+    

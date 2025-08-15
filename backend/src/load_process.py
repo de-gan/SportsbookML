@@ -12,7 +12,7 @@ HISTORY = "data/pred_history.csv"
 # ATH for 2025, OAK for 2024 and before
 MLB_TEAMS = ['NYY', 'BOS', 'TOR', 'BAL', 'TBR',  # AL East
         'CHW', 'CLE', 'DET', 'KCR', 'MIN',  # AL Central
-        'HOU', 'LAA', 'ATH', 'SEA', 'TEX',  # AL West
+        'HOU', 'LAA', 'OAK', 'SEA', 'TEX',  # AL West
         'ATL', 'MIA', 'NYM', 'PHI', 'WSN',  # NL East
         'CHC', 'CIN', 'MIL', 'PIT', 'STL',  # NL Central
         'ARI', 'COL', 'LAD', 'SDP', 'SFG']  # NL West
