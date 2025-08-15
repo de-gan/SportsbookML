@@ -103,6 +103,7 @@ export default function SportsbookHome() {
   const [selectedBooks, setSelectedBooks] = useState<string[]>([...SPORTSBOOKS]);
 
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [history, setHistory] = useState<{ total: number; correct: number } | null>(null);
 
   // Bankroll / Kelly controls
   const [bankroll, setBankroll] = useState<string>(""); // keep as string for input control
@@ -140,6 +141,20 @@ export default function SportsbookHome() {
       }
     };
     fetchPredictions();
+  }, []);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch('/api/mlb/history', { headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const payload = await res.json();
+        setHistory(payload);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchHistory();
   }, []);
 
   const bankrollNum = useMemo(() => Number(bankroll), [bankroll]);
@@ -326,6 +341,7 @@ export default function SportsbookHome() {
             <br></br>
             <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
               Edge is used to calculate the expected value (EV) of a wager. The Kelly Bet is the suggested bet based on your bankroll and Kelly multiplier.
+              Increase the Minimum Edge to be more conservative on bets. Changing Kelly Multiplier adjusts percentage of Bankroll that is used for bet.
             </p>
             <div className="flex flex-wrap gap-3 mt-4">
               <Button onClick={downloadCsv} className="gap-2"><Download className="w-4 h-4"/> Export CSV</Button>
@@ -350,19 +366,25 @@ export default function SportsbookHome() {
                 <Input placeholder="Search team" value={query} onChange={(e) => setQuery(e.target.value)} />
                 <div>
                   <label className="text-xs text-neutral-500">Sportsbooks</label>
-                  <select
-                    multiple
-                    value={selectedBooks}
-                    onChange={(e) =>
-                      setSelectedBooks(Array.from(e.target.selectedOptions).map(o => o.value))
-                    }
-                    className="mt-1 w-full rounded border border-neutral-300 bg-white p-2 text-sm h-24 dark:bg-neutral-800 dark:border-neutral-700"
-                  >
+                  <div className="mt-1 grid grid-cols-2 gap-1">
                     {SPORTSBOOKS.map((b) => (
-                      <option key={b} value={b}>{b}</option>
+                      <label key={b} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selectedBooks.includes(b)}
+                          onChange={(e) =>
+                            setSelectedBooks((prev) =>
+                              e.target.checked
+                                ? [...prev, b]
+                                : prev.filter((sb) => sb !== b)
+                            )
+                          }
+                          className="rounded border-neutral-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:bg-neutral-800 dark:border-neutral-700"
+                        />
+                        {b}
+                      </label>
                     ))}
-                  </select>
-                  <p className="mt-1 text-xs text-neutral-500">Use Ctrl/Cmd-click to toggle multiple.</p>
+                    </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-2 text-sm">
@@ -401,6 +423,16 @@ export default function SportsbookHome() {
 
         {/* Table */}
         <section>
+        {history && history.total > 0 && (
+            <div className="mb-4">
+              <div className="text-sm mb-1 font-medium">
+                All-time Model Prediction Record: {history.correct}/{history.total} ({((history.correct / history.total) * 100).toFixed(1)}%)
+              </div>
+              <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2 overflow-hidden">
+                <div className="bg-green-600 h-full" style={{ width: `${(history.correct / history.total) * 100}%` }}></div>
+              </div>
+            </div>
+          )}
           <div className="overflow-hidden rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 shadow-sm bg-white/70 dark:bg-neutral-900/70">
             <div className="px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
