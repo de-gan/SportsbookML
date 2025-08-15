@@ -328,8 +328,8 @@ export default function SportsbookHome() {
           <div className="lg:col-span-2">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">MLB Predictions</h1>
             <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
-              Transparent, data-driven picks from machine learning models using 100+ features to estimate results and gain the upper hand on sportsbooks. Start with MLB moneylines for today's slate,
-              with more sports coming soon. Filter and sort for specific results and export your board.
+              Transparent, data-driven picks from machine learning models to estimate results and gain the upper hand on sportsbooks. 
+              Model includes 100+ features and data from games across the 2023, 2024, and 2025 seasons. Filter and sort for specific results and export your board.
             </p>
             <br></br>
             <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">

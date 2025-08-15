@@ -249,7 +249,8 @@ def load_clf_model(model_path: str) -> lgb.Booster:
 def create_models():
     schedules_2025 = load_all_teams_data(2025)
     schedules_2024 = load_all_teams_data(2024)
-    df = pd.concat([schedules_2024, schedules_2025], ignore_index=True)
+    schedules_2023 = load_all_teams_data(2023)
+    df = pd.concat([schedules_2023, schedules_2024, schedules_2025], ignore_index=True)
     #print(df.columns)
     train_lgbm_classification_model(df)
     train_run_diff_model(df)

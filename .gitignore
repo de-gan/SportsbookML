@@ -223,3 +223,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Allow frontend utilities directory
+!my-app/src/lib/
+!my-app/src/lib/**
