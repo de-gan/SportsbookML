@@ -114,7 +114,17 @@ export default function SportsbookHome() {
         const res = await fetch(`/api/mlb/predictions?date=today`, { headers: { Accept: "application/json" } });
         if (!res.ok) throw new Error(`Request failed: ${res.status}`);
         const payload = await res.json();
-        setData(payload.predictions ?? []);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const preds: Prediction[] = (payload.predictions ?? []).map((p: any) => ({
+          ...p,
+          home_ml_prob: p.home_ml_prob !== undefined ? Number(p.home_ml_prob) : undefined,
+          away_ml_prob: p.away_ml_prob !== undefined ? Number(p.away_ml_prob) : undefined,
+          home_book_odds: p.home_book_odds !== undefined ? Number(p.home_book_odds) : undefined,
+          away_book_odds: p.away_book_odds !== undefined ? Number(p.away_book_odds) : undefined,
+          edge_home: p.edge_home !== undefined ? Number(p.edge_home) : undefined,
+          edge_away: p.edge_away !== undefined ? Number(p.edge_away) : undefined,
+        }));
+        setData(preds);
         setLastUpdated(payload.last_updated ?? null);
       } catch (err) {
         console.error(err);
@@ -213,7 +223,7 @@ export default function SportsbookHome() {
   const downloadCsv = () => {
     const rows = [
       [
-        "game_id","start_time_local","away_team","home_team","home_prob","away_prob","home_model_odds","away_model_odds","home_book_odds","away_book_odds","edge_home","edge_away","venue","note","rec_side","rec_fraction","rec_stake"
+        "game_id","start_time_local","away_team","home_team","home_prob","away_prob","home_model_odds","away_model_odds","home_book_odds","away_book_odds","edge_home","edge_away",
       ],
       ...sorted.map((g) => {
         const homeModelOdds = americanFromProb(g.home_ml_prob);
@@ -235,11 +245,6 @@ export default function SportsbookHome() {
           g.away_book_odds ?? "",
           edgeH?.toFixed(2) ?? "",
           edgeA?.toFixed(2) ?? "",
-          g.venue ?? "",
-          g.note ?? "",
-          g.recSide ?? "",
-          g.recFrac !== undefined ? g.recFrac.toFixed(4) : "",
-          g.recStake !== undefined ? g.recStake.toFixed(2) : "",
         ];
       })
     ];
@@ -321,7 +326,7 @@ export default function SportsbookHome() {
                     <span className="text-neutral-500">(Recommended: 0.04-0.06)</span>
                     <span className="font-semibold">{minEdge.toFixed(2)}</span>
                   </div>
-                  <Slider className="my-slider accent-white" value={[minEdge]} min={0.01} max={0.2} step={0.01} onValueChange={(v) => setMinEdge(v[0])} />
+                  <Slider className="my-slider accent-white" value={[minEdge]} min={-0.5} max={0.5} step={0.01} onValueChange={(v) => setMinEdge(v[0])} />
                 </div>
                 <div className="flex items-center gap-3">
                   <Switch checked={probViewAmerican} onCheckedChange={setProbViewAmerican} id="view-odds" />
@@ -368,15 +373,12 @@ export default function SportsbookHome() {
               <table className="min-w-full text-sm">
                 <thead className="bg-neutral-100/60 dark:bg-neutral-800/60">
                   <tr className="text-left">
-                    <th className="px-4 py-3">Home</th>
-                    <th className="px-4 py-3">Away</th>
-                    <th className="px-4 py-3">Predicted Winner</th>
-                    <th className="px-4 py-3">Probability</th>
-                    <th className="px-4 py-3">Book</th>
-                    <th className="px-4 py-3">Odds</th>
+                    <th className="px-4 py-3">Time</th>
+                    <th className="px-4 py-3">Matchup</th>
+                    <th className="px-4 py-3">Model Prediction</th>
+                    <th className="px-4 py-3">Book Odds</th>
                     <th className="px-4 py-3">Edge</th>
-                    <th className="px-4 py-3">EV</th>
-                    <th className="px-4 py-3">Bet</th>
+                    <th className="px-4 py-3">Kelly Bet</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -418,13 +420,13 @@ export default function SportsbookHome() {
                     const bestEdgeVal = [edgeH, edgeA]
                       .filter((v): v is number => v !== undefined)
                       .sort((a, b) => b - a)[0];
+                    const negativeEdge = bestEdgeVal !== undefined && bestEdgeVal < 0;
 
                     return (
                       <tr key={g.game_id} className="border-t border-neutral-200/60 dark:border-neutral-800/60">
                         <td className="px-4 py-3 align-top whitespace-nowrap">{toLocalTime(g.start_time_utc)}</td>
                         <td className="px-4 py-3 align-top">
                           <div className="font-medium">{g.away_team} <span className="opacity-60">@</span> {g.home_team}</div>
-                          <div className="text-xs text-neutral-500">{g.venue || "—"}</div>
                         </td>
                         <td className="px-4 py-3 align-top">
                           <div className="flex flex-col gap-1">
@@ -440,23 +442,28 @@ export default function SportsbookHome() {
                         <td className="px-4 py-3 align-top">
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <div>
-                              <div className="text-xs text-neutral-500">Home</div>
+                              <div className="text-xs text-neutral-500">{g.home_team}</div>
                               <div className="font-mono">{fmtOdds(g.home_book_odds)}</div>
                               <div className="text-xs text-neutral-500">Imp {fmtPct(homeImp)}</div>
                             </div>
                             <div>
-                              <div className="text-xs text-neutral-500">Away</div>
+                              <div className="text-xs text-neutral-500">{g.away_team}</div>
                               <div className="font-mono">{fmtOdds(g.away_book_odds)}</div>
                               <div className="text-xs text-neutral-500">Imp {fmtPct(awayImp)}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <div className="text-sm font-semibold">{bestEdgeVal !== undefined ? `${bestEdgeVal.toFixed(2)} pp` : "—"}</div>
+                          <div className={`text-sm font-semibold ${bestEdgeVal !== undefined ? (bestEdgeVal < 0 ? 'text-red-600' : 'text-green-600') : ''}`}>{bestEdgeVal !== undefined ? `${bestEdgeVal.toFixed(2)} pp` : "—"}</div>
                           <div className="text-xs text-neutral-500">vs book implied</div>
                         </td>
                         <td className="px-4 py-3 align-top text-sm">
-                          {g.recSide ? (
+                          {negativeEdge ? (
+                            <div className="space-y-1">
+                              <div className="font-medium">None</div>
+                              <div className="text-neutral-600 dark:text-neutral-300">0</div>
+                            </div>
+                          ) : g.recSide ? (
                             <div className="space-y-1">
                               <div className="font-medium">{g.recSide === 'HOME' ? g.home_team : g.away_team}</div>
                               <div className="text-neutral-600 dark:text-neutral-300">{fmtMoney(g.recStake)} <span className="text-xs">({fmtPct(g.recFrac)})</span></div>

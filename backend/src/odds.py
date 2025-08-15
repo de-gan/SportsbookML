@@ -47,6 +47,18 @@ def get_game_odds_today() -> pd.DataFrame:
     odds_df["Team"] = odds_df["Team"].str.replace(
         "Arizona Diamondbacks", "Arizona D\'Backs", regex=False
     )
+    odds_df["home_team"] = odds_df["home_team"].str.replace(
+        "Oakland Athletics", "Athletics", regex=False
+    )
+    odds_df["away_team"] = odds_df["away_team"].str.replace(
+        "Oakland Athletics", "Athletics", regex=False
+    )
+    odds_df["home_team"] = odds_df["home_team"].str.replace(
+        "Arizona Diamondbacks", "Arizona D\'Backs", regex=False
+    )
+    odds_df["away_team"] = odds_df["away_team"].str.replace(
+        "Arizona Diamondbacks", "Arizona D\'Backs", regex=False
+    )
     
     odds_df['Team'] = odds_df["Team"].map(full_to_abbrev)
     odds_df["home_team"] = odds_df["home_team"].map(full_to_abbrev)

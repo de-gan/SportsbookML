@@ -24,7 +24,7 @@ function decimalToAmerican(dec) {
 }
 
 function handlePredictions(req, res) {
-  const filePath = path.join(__dirname, 'backend', 'data', 'processed', 'games_today.csv');
+  const filePath = path.join(__dirname, 'data', 'processed', 'games_today.csv');
   try {
     const csv = fs.readFileSync(filePath, 'utf8');
     const rows = parseCsv(csv);

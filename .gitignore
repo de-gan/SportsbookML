@@ -1,6 +1,9 @@
 # Data Files
 data/
 
+#node dependencies
+node_modules/
+
 # Models
 models/
 
