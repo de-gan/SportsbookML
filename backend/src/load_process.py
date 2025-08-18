@@ -305,6 +305,42 @@ def update_season_data(year: int = 2025):
         
         tm_feats = create_features(year, team_new)
         tm_feats = tm_feats.drop(columns=["Streak"], errors="ignore")
+        
+        history = feats[feats['Tm'] == team].sort_values("Date").tail(9)
+        combo = pd.concat(
+            [history[["R", "RA", "Run_Diff"]], tm_feats[["R", "RA", "Run_Diff"]]],
+            ignore_index=True,
+        )
+
+        for window in [3, 5, 10]:
+            r_ma = (
+                combo["R"].shift(1).rolling(window, min_periods=1).mean().round(3)
+            )
+            ra_ma = (
+                combo["RA"].shift(1).rolling(window, min_periods=1).mean().round(3)
+            )
+            rd_ma = (
+                combo["Run_Diff"].shift(1).rolling(window, min_periods=1).mean().round(3)
+            )
+
+            r_ewma = (
+                combo["R"].shift(1).ewm(span=window, adjust=False).mean().round(3)
+            )
+            ra_ewma = (
+                combo["RA"].shift(1).ewm(span=window, adjust=False).mean().round(3)
+            )
+            rd_ewma = (
+                combo["Run_Diff"].shift(1).ewm(span=window, adjust=False).mean().round(3)
+            )
+
+            tm_feats[f"R_MA{window}"] = r_ma.iloc[-len(tm_feats):].values
+            tm_feats[f"RA_MA{window}"] = ra_ma.iloc[-len(tm_feats):].values
+            tm_feats[f"RunDiff_MA{window}"] = rd_ma.iloc[-len(tm_feats):].values
+
+            tm_feats[f"R_EWMA{window}"] = r_ewma.iloc[-len(tm_feats):].values
+            tm_feats[f"RA_EWMA{window}"] = ra_ewma.iloc[-len(tm_feats):].values
+            tm_feats[f"RunDiff_EWMA{window}"] = rd_ewma.iloc[-len(tm_feats):].values
+        
         streak_before = []
         prev_s = last_streak.get(team, 0)
         prev_r = last_result.get(team, 0)
@@ -317,16 +353,12 @@ def update_season_data(year: int = 2025):
             else:
                 s = s - 1 if s < 0 else -1
             
-            if wl == 1:
-                r = 1
-            else:
-                r = 0
+            r = 1 if wl == 1 else 0
             streak_before.append(s)
 
         tm_feats['Streak'] = streak_before
         st = tm_feats.pop("Streak")
         tm_feats.insert(13, "Streak", st)
-        #print(tm_feats[['Date','Tm','W/L','Streak']].head(10))
         tm_feats.to_csv(feats_path, mode='a', header=False, index=False)
     
     all_feats = pd.read_csv(feats_path)

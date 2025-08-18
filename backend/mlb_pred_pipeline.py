@@ -40,10 +40,10 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
     #get_teams_schedules(2025)
 
     # Update processed data
-    #update_season_data()
+    update_season_data()
 
     # Create LightGBM models
-    create_models()
+    #create_models()
     
     predict_and_odds(date, bankroll, kelly, min_edge, max_bet_frac)    
 

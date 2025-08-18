@@ -13,10 +13,10 @@ import {
   Info,
   ExternalLink,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
 
 // --- small helpers for the demo calculator ---
 const impliedFromAmerican = (odds?: number) => {
