@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import SportsbookHome from './pages/Sportsbook.tsx'
 import HomeLanding from './pages/LandingPage.tsx'
+import Methodology from './pages/Methodology.tsx'
 
 if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
   document.documentElement.classList.add('dark');
@@ -11,9 +12,14 @@ if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
 }
 
 const App = () => {
-  return window.location.pathname === '/mlb'
-    ? <SportsbookHome />
-    : <HomeLanding />;
+  switch (window.location.pathname) {
+    case '/mlb':
+      return <SportsbookHome />;
+    case '/methodology':
+      return <Methodology />;
+    default:
+      return <HomeLanding />;
+  }
 };
 
 export default App;
