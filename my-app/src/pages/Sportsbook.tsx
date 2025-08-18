@@ -97,7 +97,7 @@ export default function SportsbookHome() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [probViewAmerican, setProbViewAmerican] = useState(false);
-  const [minEdge, setMinEdge] = useState(0.05); // probability difference
+  const [minEdge, setMinEdge] = useState(0.08); // probability difference
   const [sortKey, setSortKey] = useState<"start" | "edge" | "prob" | "book">("edge");
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
   const [selectedBooks, setSelectedBooks] = useState<string[]>([...SPORTSBOOKS]);
@@ -389,7 +389,7 @@ export default function SportsbookHome() {
                 <div>
                   <div className="flex items-center justify-between mb-2 text-sm">
                     <span>Minimum Edge</span>
-                    <span className="text-neutral-500">(Recommended: 0.04-0.06)</span>
+                    <span className="text-neutral-500">(Recommended: 0.05-0.10)</span>
                     <span className="font-semibold">{minEdge.toFixed(2)}</span>
                   </div>
                   <Slider className="my-slider accent-white" value={[minEdge]} min={0} max={0.2} step={0.01} onValueChange={(v) => setMinEdge(v[0])} />
@@ -427,6 +427,7 @@ export default function SportsbookHome() {
             <div className="mb-4">
               <div className="text-sm mb-1 font-medium">
                 All-time Model Prediction Record: {history.correct}/{history.total} ({((history.correct / history.total) * 100).toFixed(1)}%)
+                <></>
               </div>
               <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2 overflow-hidden">
                 <div className="bg-green-600 h-full" style={{ width: `${(history.correct / history.total) * 100}%` }}></div>
@@ -438,7 +439,7 @@ export default function SportsbookHome() {
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4"/>
                 <h2 className="font-semibold">Today's MLB Moneyline Predictions</h2>
-                <Badge variant="secondary">Model v1</Badge>
+                <Badge variant="secondary">Model v1.2</Badge>
               </div>
               <div className="text-xs text-neutral-600 dark:text-neutral-400">
                 {isFinite(bankrollNum) && bankrollNum > 0 ? `Bankroll: $${bankrollNum.toFixed(2)}` : "Set bankroll to see bet sizing"}
@@ -571,9 +572,9 @@ export default function SportsbookHome() {
 
         {/* Footer */}
         <footer className="mt-10 pb-10 text-sm text-neutral-600 dark:text-neutral-400">
-          <p>
+          <center>
             These model outputs are informational and not financial advice. Edges and odds are computed from model probabilities and optional bookmaker lines when provided.
-          </p>
+          </center>
         </footer>
       </main>
     </div>
