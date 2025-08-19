@@ -42,6 +42,21 @@ available sportsbook odds.
 
    The development server runs on <http://localhost:5173>.
 
+## Deployment
+
+The frontend can be deployed to Vercel and backed by a Supabase project for
+storage.
+
+1. Create a Supabase project and note the project URL and anon key. Add them to
+   `my-app/.env` based on the provided `.env.example` file.
+2. Commit your changes and push to a Vercel-connected repository. Vercel reads
+   the `vercel.json` file and builds the Vite project in `my-app/`.
+3. Configure the `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment
+   variables in your Vercel project settings.
+
+After deployment, the site will fetch predictions and history directly from
+Supabase tables (`predictions` and `history`).
+
 ## Goals
 
 - Provide win/loss probability estimates for each game.
