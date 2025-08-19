@@ -1,59 +1,56 @@
 # SportsbookML
-Model to predict MLB Baseball odds (Specific types TBD)
 
-# Objective
-## Win/Loss Predictor & Odds Comparitor + ROI
-1. Provide predictions and compare to varying odds across sportsbooks
-2. Show greatest point efficient/bettor friendly odds
-3. **Show odds descrepncies across books to hedge*
-## Outputs
-Predictions of:
-- Win/Loss Probability
-- Run Dif.
-## Additional
-- ROI and rolling tally of initial investment ($XXX)
-- Dashboard
+SportsbookML is a prototype pipeline and web application for generating
+Major League Baseball moneyline predictions and comparing them against
+available sportsbook odds.
 
-# Models
-Regression for Run Dif
-**Classification for Win/Loss*
-**Regression for Total Runs*
-**Regression for Probabilities*
+## Repository layout
 
+- `backend/` &ndash; Python scripts for collecting statistics, engineering
+  features and training the prediction model. Running
+  `python backend/mlb_pred_pipeline.py` produces a
+  `data/processed/games_today.csv` file with the latest model
+  probabilities and edges.
+- `server.js` &ndash; a small Node HTTP server that exposes the predictions
+  as JSON at `/api/mlb/predictions` by reading the
+  `data/processed/games_today.csv` file.
+- `my-app/` &ndash; a Vite + React frontend (TypeScript and Tailwind) that
+  displays the predictions in a dashboard.
 
---- CAN I GET WIN PERCENTAGE FROM BINARY WIN/LOSS TARGET VARIABLE?
+## Getting started
 
-# Necessary Variables
-## Target:
-Run Dif. & W/L
-## Features: (Future -- Split data when Home v Away)
-### Team data
-- Win/Loss streak -- Captures momentum
-- Last N games W% -- Reflects recent form
-- Season W% -- Overall team quality
-- Home/Away indicator -- Home field advantage
-- Run differential (season & recent) -- Better than just W/L
-- Avg runs scored/allowed (last N games) -- Tracks offense/defense form
-- Opponent matchup record -- Psychological edge or disadvantage
-- Division matchup flag	-- Divisional games tend to be tighter?
-- Rest days -- More rest = better performance
-### Individual & Lineup data
-- Team AVG/OBP/SLG vs RHP/LHP
-- Team K% and BB%
-- Rating?
-### Starting Pitcher & Bullpen data
-- ERA, WHIP, etc
-- K/BB, GB%, HR/9
-- Recent 3-5 game ERA/FIP
-- Splits vs opponent
-- Home/Away splits
-- Pitch count in last start
-- RHP/LHP
-### Game Data
-- Date
-- Weather?
-- Day/Night
-### Sportsbook Odds data
-- Lines
-- Over/Under total
-- Line movement?
+1. **Generate predictions**
+
+   ```bash
+   python backend/mlb_pred_pipeline.py
+   ```
+
+2. **Start the API server**
+
+   ```bash
+   npm start
+   ```
+
+   The server listens on <http://localhost:3001>.
+
+3. **Run the frontend**
+
+   ```bash
+   cd my-app
+   npm run dev
+   ```
+
+   The development server runs on <http://localhost:5173>.
+
+## Goals
+
+- Provide win/loss probability estimates for each game.
+- Compare model probabilities to sportsbook odds to surface positive edges.
+- Track return on investment (ROI) and maintain a rolling bankroll.
+
+## Models
+
+The current implementation includes a classification model for win/loss
+predictions. Regression models for total runs and probability calibration
+are planned but not yet active.
+

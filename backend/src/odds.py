@@ -29,14 +29,17 @@ def get_game_odds_today() -> pd.DataFrame:
     }
     resp = requests.get(url, params=params)
     odds_data = resp.json()
-    odds_df = pd.json_normalize(odds_data,
+    odds_df = pd.json_normalize(
+        odds_data,
         record_path=["bookmakers", "markets", "outcomes"],
         meta=[
-        ["bookmakers","title"],
-        ["bookmakers","last_update"],
-        "home_team","away_team"
-        ]
-    ).rename(columns={"price":"Odds","name":"Team","bookmakers.title":"Book"})
+            ["bookmakers", "title"],
+            ["bookmakers", "last_update"],
+            "commence_time",
+            "home_team",
+            "away_team",
+        ],
+    ).rename(columns={"price": "Odds", "name": "Team", "bookmakers.title": "Book"})
     
     odds_df["Team"] = odds_df["Team"].str.replace(
         "Oakland Athletics", "Athletics", regex=False
@@ -44,11 +47,25 @@ def get_game_odds_today() -> pd.DataFrame:
     odds_df["Team"] = odds_df["Team"].str.replace(
         "Arizona Diamondbacks", "Arizona D\'Backs", regex=False
     )
+    odds_df["home_team"] = odds_df["home_team"].str.replace(
+        "Oakland Athletics", "Athletics", regex=False
+    )
+    odds_df["away_team"] = odds_df["away_team"].str.replace(
+        "Oakland Athletics", "Athletics", regex=False
+    )
+    odds_df["home_team"] = odds_df["home_team"].str.replace(
+        "Arizona Diamondbacks", "Arizona D\'Backs", regex=False
+    )
+    odds_df["away_team"] = odds_df["away_team"].str.replace(
+        "Arizona Diamondbacks", "Arizona D\'Backs", regex=False
+    )
     
     odds_df['Team'] = odds_df["Team"].map(full_to_abbrev)
-    
-    #print(odds_df)
-    #odds_df.to_csv("data/processed/odds.csv", index=False)
+    odds_df["home_team"] = odds_df["home_team"].map(full_to_abbrev)
+    odds_df["away_team"] = odds_df["away_team"].map(full_to_abbrev)
+
+    # print(odds_df)
+    # odds_df.to_csv("data/processed/odds.csv", index=False)
     return odds_df
 
 def suggest_units(

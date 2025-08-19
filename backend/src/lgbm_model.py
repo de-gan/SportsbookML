@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold, RandomizedSearchCV
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, root_mean_squared_error, r2_score
 
 from src.load_process import load_all_teams_data
@@ -13,7 +13,7 @@ from src.load_process import load_all_teams_data
 # 'Opp_R_MA3', 'Opp_R_MA5', 'Opp_R_MA10',
 # 'Opp_RA_MA3', 'Opp_RA_MA5', 'Opp_RA_MA10',
 FEATURES = [
-    'Home_Away', 'D/N', 'Rank', 'Streak',
+    'Home_Away', 'Rank', 'Streak', 'D/N',
     'RunDiff_MA3', 'RunDiff_MA5', 'RunDiff_MA10',
     'RunDiff_EWMA3', 'RunDiff_EWMA5', 'RunDiff_EWMA10',
     'SP_ERA', 'SP_WAR', 'SP_K9', 'SP_BB9', 
@@ -51,6 +51,15 @@ FEATURES = [
     'Opp_RP_ERA', 'Opp_RP_RAR',
 ]
 
+def _prepare_features(df: pd.DataFrame, feature_list: list) -> pd.DataFrame:
+    """Return numeric feature matrix with constant columns removed."""
+    X = df[feature_list]
+    constant_cols = [col for col in X.columns if X[col].nunique() <= 1]
+    if constant_cols:
+        print(f"Removing constant columns: {constant_cols}")
+        X = X.drop(columns=constant_cols)
+    return X
+
 os.makedirs("models", exist_ok=True)
 
 def train_run_diff_model(df: pd.DataFrame) -> lgb.Booster:
@@ -62,7 +71,7 @@ def train_run_diff_model(df: pd.DataFrame) -> lgb.Booster:
 
     # 2) Drop missing
     df = df.dropna(subset=FEATURES + ['Run_Diff'])
-    X = df[FEATURES]
+    X = _prepare_features(df, FEATURES)
     y = df['Run_Diff']
 
     # 3) Train/test split
@@ -120,7 +129,7 @@ def train_run_total_model(df: pd.DataFrame) -> lgb.Booster:
 
     # 2) Drop missing
     df = df.dropna(subset=FEATURES + ['Run_Total'])
-    X = df[FEATURES]
+    X = _prepare_features(df, FEATURES)
     y = df['Run_Total']
 
     # 3) Train/test split
@@ -169,68 +178,116 @@ def train_run_total_model(df: pd.DataFrame) -> lgb.Booster:
     return model
 
     
-def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:    
+def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
+    """Train a LightGBM classifier with cross-validation and hyperparameter search."""
+
     target = 'W/L'
-    
+
+    # Drop rows with missing values in features or target
     df = df.dropna(subset=FEATURES + [target])
-    X = df[FEATURES]
+    X = _prepare_features(df, FEATURES)
     y = df[target]
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    train_data = lgb.Dataset(X_train, label=y_train)
-    valid_data = lgb.Dataset(X_test, label=y_test, reference=train_data)
-    
-    params = {
-        'objective': 'binary',
-        'metric':    ['binary_logloss','auc'],
-        'boosting_type':  'gbdt',
-        'learning_rate':  0.01,
-        'num_leaves':     31,
-        'max_depth':      6,
-        'min_data_in_leaf': 20,
-        'feature_fraction': 0.8,
-        'bagging_fraction': 0.8,
-        'bagging_freq':      5,
-        'lambda_l1':         0.1,
-        'lambda_l2':         0.1,
-        'verbose':          -1
+
+    # Split once to hold out a final test set
+    X_train_full, X_test, y_train_full, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y
+    )
+
+    # Base model for hyperparameter tuning
+    base_clf = lgb.LGBMClassifier(
+        objective='binary',
+        boosting_type='gbdt',
+        n_estimators=1000,
+        class_weight='balanced',
+        n_jobs=-1,
+        random_state=42,
+    )
+
+    param_dist = {
+        'num_leaves': [31, 63, 127],
+        'max_depth': [-1, 6, 10],
+        'learning_rate': [0.01, 0.05, 0.1],
+        'subsample': [0.7, 0.8, 1.0],
+        'colsample_bytree': [0.7, 0.8, 1.0],
+        'reg_alpha': [0.0, 0.1, 0.5],
+        'reg_lambda': [0.0, 0.1, 0.5],
     }
-    
-    model = lgb.train(
-        params,
-        train_data,
-        num_boost_round=2000,
-        valid_sets=[train_data, valid_data],
+
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+    search = RandomizedSearchCV(
+        estimator=base_clf,
+        param_distributions=param_dist,
+        n_iter=25,
+        scoring='roc_auc',
+        cv=cv,
+        n_jobs=-1,
+        verbose=1,
+        random_state=42,
+    )
+
+    # Hyperparameter tuning using cross-validation
+    search.fit(X_train_full, y_train_full)
+
+    best_params = search.best_params_
+    print(f"Best params: {best_params}")
+
+    # Further split training data for early stopping
+    X_train, X_valid, y_train, y_valid = train_test_split(
+        X_train_full,
+        y_train_full,
+        test_size=0.2,
+        random_state=42,
+        stratify=y_train_full,
+    )
+
+    best_clf = lgb.LGBMClassifier(
+        objective='binary',
+        boosting_type='gbdt',
+        class_weight='balanced',
+        n_jobs=-1,
+        random_state=42,
+        n_estimators=1000,
+        **best_params,
+    )
+
+    best_clf.fit(
+        X_train,
+        y_train,
+        eval_set=[(X_valid, y_valid)],
+        eval_metric='auc',
         callbacks=[
-            # stop if validation loss hasn’t improved in 50 rounds
-            lgb.callback.early_stopping(stopping_rounds=50),
-            # print eval results every 100 rounds
-            lgb.callback.log_evaluation(period=100)
+            lgb.early_stopping(50),
+            lgb.log_evaluation(100),
         ],
     )
-    
-    y_pred = model.predict(X_test)
-    y_pred_binary = (y_pred >= 0.5).astype(int)
-    
-    accuracy = accuracy_score(y_test, y_pred_binary)
-    roc_auc = roc_auc_score(y_test, y_pred)
-    
+
+    y_pred_proba = best_clf.predict_proba(X_test)[:, 1]
+    y_pred = (y_pred_proba >= 0.5).astype(int)
+
+    accuracy = accuracy_score(y_test, y_pred)
+    roc_auc = roc_auc_score(y_test, y_pred_proba)
+
     print(f"Accuracy: {accuracy:.3f}")
     print(f"ROC AUC: {roc_auc:.3f}")
-    print(classification_report(y_test, y_pred_binary))
-    
+    print(classification_report(y_test, y_pred))
+
     print("Feature importances:")
     feature_importances = pd.DataFrame({
         'Feature': X.columns,
-        'Importance': model.feature_importance()
+        'Importance': best_clf.booster_.feature_importance(),
     }).sort_values(by='Importance', ascending=False)
-    
+
     print(feature_importances.to_string())
-    
-    model.save_model("models/wl_lgbm.txt")
-    
-    return model
+
+    # Save the underlying Booster model
+    best_clf.booster_.save_model("models/wl_lgbm.txt")
+
+    return best_clf.booster_
 
 def load_reg_model(model_path: str) -> lgb.Booster:
     if not os.path.exists(model_path):
@@ -249,7 +306,8 @@ def load_clf_model(model_path: str) -> lgb.Booster:
 def create_models():
     schedules_2025 = load_all_teams_data(2025)
     schedules_2024 = load_all_teams_data(2024)
-    df = pd.concat([schedules_2024, schedules_2025], ignore_index=True)
+    schedules_2023 = load_all_teams_data(2023)
+    df = pd.concat([schedules_2023, schedules_2024, schedules_2025], ignore_index=True)
     #print(df.columns)
     train_lgbm_classification_model(df)
     train_run_diff_model(df)

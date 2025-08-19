@@ -52,7 +52,7 @@ def get_todays_slate(target: date = date.today()) -> pd.DataFrame:
             dt = re.sub(r'\s+', '', dt).lower()
             dt = datetime.strptime(dt, "%I:%M%p") 
             if dt.hour >= 19:
-                 dn = 1  # Night game
+                 dn = 1
             else:
                  dn = 0
 
@@ -299,10 +299,9 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
     for ev in records:
         feats.append(build_features_for_event(ev, raw, snap_cache, target.year))
     X = pd.DataFrame(feats, columns=FEATURES)
-    #X.to_csv("data/processed/today.csv", index=False)
-    #print(X)
+    #X.to_csv("data/processed/games_today_stats.csv", index=False)
 
-    clf = load_clf_model("models/wl_lgbm.txt")
+    clf = load_clf_model("backend/models/wl_lgbm.txt")
     probs = clf.predict(X)
     
     probs_df = pd.DataFrame(records)
@@ -320,8 +319,6 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
         columns={"Away": "Team", "Prob_Away_Win": "Model_Prob"})
     long = pd.concat([home_teams, away_teams], ignore_index=True)
     
-    #long.to_csv("data/processed/today.csv", index=False)
-
     rows = []
     for ev, p in zip(records, probs):
         home, away = ev["Tm"], ev["Opp"]
