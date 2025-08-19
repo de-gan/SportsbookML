@@ -1,8 +1,21 @@
 const http = require('http');
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3001;
+const s3 = new S3Client({ region: process.env.AWS_REGION });
+const BUCKET = process.env.PREDICTIONS_BUCKET;
+const GAMES_TODAY_KEY = process.env.GAMES_TODAY_KEY || 'games_today.csv';
+
+async function streamToString(stream) {
+  return await new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', chunk => chunks.push(chunk));
+    stream.once('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+    stream.once('error', reject);
+  });
+}
 
 function parseCsv(str) {
   const lines = str.trim().split(/\r?\n/);
@@ -23,10 +36,10 @@ function decimalToAmerican(dec) {
   return Math.round(-100 / (d - 1));
 }
 
-function handlePredictions(req, res) {
-  const filePath = path.join(__dirname, 'data', 'processed', 'games_today.csv');
+async function handlePredictions(req, res) {
   try {
-    const csv = fs.readFileSync(filePath, 'utf8');
+    const data = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: GAMES_TODAY_KEY }));
+    const csv = await streamToString(data.Body);
     const rows = parseCsv(csv);
     const grouped = {};
     rows.forEach(r => {
@@ -60,8 +73,8 @@ function handlePredictions(req, res) {
         };
       });
     });
-    const stat = fs.statSync(filePath);
-    const body = JSON.stringify({ predictions, last_updated: stat.mtime.toISOString() });
+    const lastUpdated = data.LastModified ? data.LastModified.toISOString() : new Date().toISOString();
+    const body = JSON.stringify({ predictions, last_updated: lastUpdated });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(body);
   } catch (err) {

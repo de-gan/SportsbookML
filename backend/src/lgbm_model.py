@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split, StratifiedKFold, Randomize
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, root_mean_squared_error, r2_score
 
 from src.load_process import load_all_teams_data
+from src.s3_utils import upload_model
 
 # Recently removed:
 # 'R_MA3', 'R_MA5', 'R_MA10', 
@@ -116,7 +117,9 @@ def train_run_diff_model(df: pd.DataFrame) -> lgb.Booster:
     print(f"RunDiff RMSE: {rmse:.3f}, R2: {r2:.3f}")
 
     # 8) Save the model
-    model.save_model(f"models/run_diff_lgbm.txt")
+    model_path = "models/run_diff_lgbm.txt"
+    model.save_model(model_path)
+    upload_model(model_path)
     return model
 
 
@@ -174,7 +177,9 @@ def train_run_total_model(df: pd.DataFrame) -> lgb.Booster:
     print(f"RunTotal RMSE: {rmse:.3f}, R2: {r2:.3f}")
 
     # 8) Save the model
-    model.save_model(f"models/run_total_lgbm.txt")
+    model_path = "models/run_total_lgbm.txt"
+    model.save_model(model_path)
+    upload_model(model_path)
     return model
 
     
@@ -285,7 +290,9 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
     print(feature_importances.to_string())
 
     # Save the underlying Booster model
-    best_clf.booster_.save_model("models/wl_lgbm.txt")
+    model_path = "models/wl_lgbm.txt"
+    best_clf.booster_.save_model(model_path)
+    upload_model(model_path)
 
     return best_clf.booster_
 

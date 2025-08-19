@@ -10,16 +10,21 @@ available sportsbook odds.
   features and training the prediction model. Running
   `python backend/mlb_pred_pipeline.py` produces a
   `data/processed/games_today.csv` file with the latest model
-  probabilities and edges.
+  probabilities and edges and uploads it to the bucket defined by
+  `PREDICTIONS_BUCKET`.
+- Trained LightGBM model files are also uploaded to the bucket defined by
+  `MODELS_BUCKET` (defaulting to `PREDICTIONS_BUCKET`).
 - `server.js` &ndash; a small Node HTTP server that exposes the predictions
-  as JSON at `/api/mlb/predictions` by reading the
-  `data/processed/games_today.csv` file.
+  as JSON at `/api/mlb/predictions` by reading the `games_today.csv`
+  object from S3.
 - `my-app/` &ndash; a Vite + React frontend (TypeScript and Tailwind) that
   displays the predictions in a dashboard.
 
 ## Getting started
 
 1. **Generate predictions**
+   Ensure the environment has access to an S3 bucket and the variables
+   `AWS_REGION` and `PREDICTIONS_BUCKET` are set.
 
    ```bash
    python backend/mlb_pred_pipeline.py

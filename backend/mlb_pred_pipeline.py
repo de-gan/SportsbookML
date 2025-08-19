@@ -8,6 +8,7 @@ from src.load_process import update_season_data, get_teams_schedules, load_all_t
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today, suggest_units
+from src.s3_utils import upload_file
 
 def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, max_bet_frac: float):
     pred_df = predict_for_date(date)
@@ -33,7 +34,11 @@ def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, 
     bets_to_place = bets_to_place.sort_values("Edge", ascending=False).reset_index(drop=True)
     print(bets_to_place.to_string(index=False))
 
-    merged.to_csv("data/processed/games_today.csv", index=False)
+    local_csv = "data/processed/games_today.csv"
+    merged.to_csv(local_csv, index=False)
+    # Upload the daily predictions to S3 so the API server can consume them
+    upload_file(local_csv, "games_today.csv")
+    upload_file(local_csv, f"games/{date}_games_today.csv")
 
 def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, min_edge: float = 0.05, max_bet_frac: float = 0.02):
     # Retrieve up-to-date raw game data
