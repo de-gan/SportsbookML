@@ -10,7 +10,7 @@ available sportsbook odds.
   features and training the prediction model. Running
   `python backend/mlb_pred_pipeline.py` produces a
   `data/processed/games_today.csv` file with the latest model
-  probabilities and edges.
+  probabilities and edges and can optionally upload them to a Supabase table.
 - `server.js` &ndash; a small Node HTTP server that exposes the predictions
   as JSON at `/api/mlb/predictions` by reading the
   `data/processed/games_today.csv` file.
@@ -21,7 +21,13 @@ available sportsbook odds.
 
 1. **Generate predictions**
 
+   The pipeline writes predictions to `data/processed/games_today.csv` and, if
+   the `SUPABASE_URL` and `SUPABASE_KEY` environment variables are set, also
+   publishes the results to a Supabase table for the frontend to consume.
+
    ```bash
+   export SUPABASE_URL="https://your-project.supabase.co"
+   export SUPABASE_KEY="service_role_key"
    python backend/mlb_pred_pipeline.py
    ```
 
