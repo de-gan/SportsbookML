@@ -299,7 +299,7 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
     for ev in records:
         feats.append(build_features_for_event(ev, raw, snap_cache, target.year))
     X = pd.DataFrame(feats, columns=FEATURES)
-    #X.to_csv("data/processed/games_today_stats.csv", index=False)
+    #X.to_csv("data/games_today_stats.csv", index=False)
 
     clf = load_clf_model("backend/models/wl_lgbm.txt")
     probs = clf.predict(X)

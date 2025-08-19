@@ -34,7 +34,7 @@ def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, 
     bets_to_place = bets_to_place.sort_values("Edge", ascending=False).reset_index(drop=True)
     print(bets_to_place.to_string(index=False))
 
-    local_csv = "data/processed/games_today.csv"
+    local_csv = "data/games_today.csv"
     merged.to_csv(local_csv, index=False)
 
     # Attempt to publish predictions to Supabase so the frontend can
