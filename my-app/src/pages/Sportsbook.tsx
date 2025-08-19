@@ -294,11 +294,11 @@ export default function SportsbookHome() {
     <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-neutral-200 dark:border-neutral-800">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-2xl bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md">
+          <div className="p-2 rounded-2xl bg-gradient-to-br from-blue-950 via-indigo-600 to-indigo-950 text-white shadow-md">
             <HandCoins className="w-5 h-5" />
           </div>
           <span className="text-xl font-semibold tracking-tight">UpperHand</span>
-          <Badge variant="secondary" className="ml-1">Beta</Badge>
+          <Badge variant="secondary" className="ml-1 bg-indigo-600">Beta</Badge>
         </div>
         <nav className="ml-auto flex items-center gap-1">
           <Button variant="ghost" className="gap-2" disabled>
@@ -307,7 +307,7 @@ export default function SportsbookHome() {
           <Button variant="ghost" className="gap-2" disabled>
             NBA <span className="opacity-50">(soon)</span>
           </Button>
-          <Button variant="ghost" className="gap-2 text-indigo-500">
+          <Button variant="ghost" className="gap-2 text-indigo-600">
             <Trophy className="w-4 h-4" /> MLB
           </Button>
           <Button asChild variant="ghost" className="gap-2">
@@ -346,12 +346,12 @@ export default function SportsbookHome() {
             <div className="flex flex-wrap gap-3 mt-4">
               <Button onClick={downloadCsv} className="gap-2"><Download className="w-4 h-4"/> Export CSV</Button>
               <Button variant="secondary" onClick={() => window.location.reload()} className="gap-2"><RefreshCcw className="w-4 h-4"/> Refresh</Button>
-              <a href="/methodology" className="inline-flex items-center gap-2 text-indigo-500 hover:underline">
+              <a href="/methodology" className="inline-flex items-center gap-2 text-indigo-600 hover:underline">
                 Methodology <ExternalLink className="w-4 h-4"/>
               </a>
             </div>
             {lastUpdated && (
-              <p className="text-sm mt-2 text-neutral-600 dark:text-neutral-400">Last updated: {new Date(lastUpdated).toLocaleString()}</p>
+              <p className="text-sm mt-2 text-neutral-600 dark:text-neutral-400">Updates every morning. Last updated: {new Date(lastUpdated).toLocaleString()}</p>
             )}
           </div>
 
@@ -574,6 +574,8 @@ export default function SportsbookHome() {
         <footer className="mt-10 pb-10 text-sm text-neutral-600 dark:text-neutral-400">
           <center>
             These model outputs are informational and not financial advice. Edges and odds are computed from model probabilities and optional bookmaker lines when provided.
+            <br/>
+            Data is for informational and educational purposes only and is not a solicitation to gamble. Use at your own risk.
           </center>
         </footer>
       </main>

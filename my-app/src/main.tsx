@@ -4,6 +4,7 @@ import './index.css'
 import SportsbookHome from './pages/Sportsbook.tsx'
 import HomeLanding from './pages/LandingPage.tsx'
 import Methodology from './pages/Methodology.tsx'
+import About from './pages/About.tsx'
 
 if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
   document.documentElement.classList.add('dark');
@@ -17,6 +18,8 @@ const App = () => {
       return <SportsbookHome />;
     case '/methodology':
       return <Methodology />;
+    case '/about':
+      return <About />
     default:
       return <HomeLanding />;
   }
