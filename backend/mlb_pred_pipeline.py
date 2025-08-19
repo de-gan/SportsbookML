@@ -8,6 +8,7 @@ from src.load_process import update_season_data, get_teams_schedules, load_all_t
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today, suggest_units
+from src.supabase_client import upsert_predictions
 
 def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, max_bet_frac: float):
     pred_df = predict_for_date(date)
@@ -34,6 +35,14 @@ def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, 
     print(bets_to_place.to_string(index=False))
 
     merged.to_csv("data/processed/games_today.csv", index=False)
+
+    # Attempt to publish predictions to Supabase so the frontend can
+    # consume them directly from the database. Any failure here should
+    # not stop the pipeline from completing.
+    try:
+        upsert_predictions(merged)
+    except Exception as exc:
+        print(f"Failed to upload predictions to Supabase: {exc}")
 
 def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, min_edge: float = 0.05, max_bet_frac: float = 0.02):
     # Retrieve up-to-date raw game data
