@@ -1,8 +1,12 @@
 const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const PORT = process.env.PORT || 3001;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'mlb-data';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function parseCsv(str) {
   const lines = str.trim().split(/\r?\n/);
@@ -23,10 +27,14 @@ function decimalToAmerican(dec) {
   return Math.round(-100 / (d - 1));
 }
 
-function handlePredictions(req, res) {
-  const filePath = path.join(__dirname, 'data', 'processed', 'games_today.csv');
+async function handlePredictions(req, res) {
   try {
-    const csv = fs.readFileSync(filePath, 'utf8');
+    const { data, error } = await supabase
+      .storage
+      .from(SUPABASE_BUCKET)
+      .download('games_today.csv');
+    if (error || !data) throw error || new Error('No data');
+    const csv = await data.text();
     const rows = parseCsv(csv);
     const grouped = {};
     rows.forEach(r => {
@@ -60,8 +68,7 @@ function handlePredictions(req, res) {
         };
       });
     });
-    const stat = fs.statSync(filePath);
-    const body = JSON.stringify({ predictions, last_updated: stat.mtime.toISOString() });
+    const body = JSON.stringify({ predictions, last_updated: new Date().toISOString() });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(body);
   } catch (err) {
@@ -71,15 +78,18 @@ function handlePredictions(req, res) {
   }
 }
 
-function handleHistory(req, res) {
-  const filePath = path.join(__dirname, 'data', 'pred_history.csv');
+async function handleHistory(req, res) {
   try {
-    if (!fs.existsSync(filePath)) {
+    const { data, error } = await supabase
+      .storage
+      .from(SUPABASE_BUCKET)
+      .download('pred_history.csv');
+    if (error || !data) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ total: 0, correct: 0 }));
       return;
     }
-    const csv = fs.readFileSync(filePath, 'utf8');
+    const csv = await data.text();
     const rows = parseCsv(csv);
     const finished = rows.filter(r => r.Actual_Winner);
     const correct = finished.filter(r => Number(r.correct) === 1).length;
@@ -93,11 +103,11 @@ function handleHistory(req, res) {
   }
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url && req.url.startsWith('/api/mlb/predictions')) {
-    handlePredictions(req, res);
+    await handlePredictions(req, res);
   } else if (req.method === 'GET' && req.url && req.url.startsWith('/api/mlb/history')) {
-    handleHistory(req, res);
+    await handleHistory(req, res);
   } else {
     res.statusCode = 404;
     res.end('Not found');

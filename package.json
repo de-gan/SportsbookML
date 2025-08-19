@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "framer-motion": "^12.23.12",
-    "lucide-react": "^0.539.0"
+    "lucide-react": "^0.539.0",
+    "@supabase/supabase-js": "^2.44.0"
   },
   "scripts": {
     "start": "node server.js"
