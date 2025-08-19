@@ -29,3 +29,28 @@ def upsert_predictions(df: pd.DataFrame, table: str = "mlb_predictions") -> None
     records = df.where(pd.notnull(df), None).to_dict("records")
     if records:
         _client.table(table).upsert(records).execute()
+
+
+def upload_file(
+    local_path: str,
+    bucket: str = "mlb-data",
+    dest_path: Optional[str] = None,
+) -> None:
+    """Upload a local file to a Supabase storage bucket.
+
+    Parameters
+    ----------
+    local_path: str
+        Path to the local file to upload.
+    bucket: str
+        Name of the Supabase storage bucket.
+    dest_path: Optional[str]
+        Path (including filename) to store within the bucket. If omitted,
+        the file's basename is used.
+    """
+    if _client is None:
+        raise RuntimeError("Supabase client is not configured. Set SUPABASE_URL and SUPABASE_KEY.")
+
+    target_path = dest_path or os.path.basename(local_path)
+    with open(local_path, "rb") as f:
+        _client.storage.from_(bucket).upload(target_path, f, {"upsert": True})
