@@ -2,5 +2,10 @@
   "installCommand": "npm install --prefix my-app",
   "buildCommand": "npm run build --prefix my-app",
   "outputDirectory": "my-app/dist",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/mlb", "destination": "/index.html" },
+    { "source": "/about", "destination": "/index.html" },
+    { "source": "/methodology", "destination": "/index.html" }
+  ]
 }
