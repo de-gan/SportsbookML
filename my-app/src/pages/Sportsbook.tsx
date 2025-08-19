@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabase";
 import { Trophy, Sparkles, RefreshCcw, CloudOff, Download, Filter, HelpCircle, ExternalLink, HandCoins} from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -117,11 +118,14 @@ export default function SportsbookHome() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/mlb/predictions?date=today`, { headers: { Accept: "application/json" } });
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        const payload = await res.json();
+        const today = new Date().toISOString().slice(0, 10);
+        const { data: rows, error: supaError } = await supabase
+          .from("predictions")
+          .select("*")
+          .eq("date", today);
+        if (supaError) throw supaError;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const preds: Prediction[] = (payload.predictions ?? []).map((p: any) => ({
+        const preds: Prediction[] = (rows ?? []).map((p: any) => ({
           ...p,
           sportsbook: p.sportsbook ?? p.book ?? p.Sportsbook,
           home_ml_prob: p.home_ml_prob !== undefined ? Number(p.home_ml_prob) : undefined,
@@ -132,7 +136,7 @@ export default function SportsbookHome() {
           edge_away: p.edge_away !== undefined ? Number(p.edge_away) : undefined,
         }));
         setData(preds);
-        setLastUpdated(payload.last_updated ?? null);
+        setLastUpdated(new Date().toISOString());
       } catch (err) {
         console.error(err);
         setError("Could not load today's MLB predictions.");
@@ -146,10 +150,11 @@ export default function SportsbookHome() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch('/api/mlb/history', { headers: { Accept: 'application/json' } });
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        const payload = await res.json();
-        setHistory(payload);
+        const { data: h, error: hErr } = await supabase
+          .from("history")
+          .select("total, correct")
+          .single();
+        if (!hErr && h) setHistory(h as { total: number; correct: number });
       } catch (err) {
         console.error(err);
       }
