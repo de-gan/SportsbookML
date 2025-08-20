@@ -13,7 +13,7 @@ if _SUPABASE_URL and _SUPABASE_KEY:
     _client = create_client(_SUPABASE_URL, _SUPABASE_KEY)
 
 
-def upsert_predictions(df: pd.DataFrame, table: str = "mlb_predictions") -> None:
+def upsert_predictions(df: pd.DataFrame, table: str = "predictions") -> None:
     """Upload the day's predictions to Supabase.
 
     Parameters
@@ -53,4 +53,8 @@ def upload_file(
 
     target_path = dest_path or os.path.basename(local_path)
     with open(local_path, "rb") as f:
-        _client.storage.from_(bucket).upload(target_path, f, {"upsert": True})
+        # All header values must be strings. The Supabase client forwards the
+        # options dictionary directly to the underlying HTTP headers, so using a
+        # boolean here results in ``Header value must be str or bytes`` at runtime.
+        # See issue described in previous commit.
+        _client.storage.from_(bucket).upload(target_path, f, {"upsert": "true"})

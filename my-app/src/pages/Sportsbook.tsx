@@ -118,11 +118,9 @@ export default function SportsbookHome() {
       setLoading(true);
       setError(null);
       try {
-        const today = new Date().toISOString().slice(0, 10);
         const { data: rows, error: supaError } = await supabase
           .from("predictions")
-          .select("*")
-          .eq("date", today);
+          .select("*");
         if (supaError) throw supaError;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const preds: Prediction[] = (rows ?? []).map((p: any) => ({
@@ -150,11 +148,19 @@ export default function SportsbookHome() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const { data: h, error: hErr } = await supabase
+        const { count: total, error: totalErr } = await supabase
           .from("history")
-          .select("total, correct")
-          .single();
-        if (!hErr && h) setHistory(h as { total: number; correct: number });
+          .select("correct", { count: "exact", head: true })
+          .not("correct", "is", null);
+        if (totalErr) throw totalErr;
+
+        const { count: correct, error: correctErr } = await supabase
+          .from("history")
+          .select("correct", { count: "exact", head: true })
+          .eq("correct", true);
+        if (correctErr) throw correctErr;
+
+        setHistory({ total: total || 0, correct: correct || 0 });
       } catch (err) {
         console.error(err);
       }
