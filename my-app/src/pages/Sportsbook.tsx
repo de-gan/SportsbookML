@@ -118,12 +118,12 @@ export default function SportsbookHome() {
       setLoading(true);
       setError(null);
       try {
-        const { data: rows, error: supaError } = await supabase
-          .from("predictions")
-          .select("*");
-        if (supaError) throw supaError;
+        const res = await fetch("/api/mlb/predictions");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const rows = json.predictions ?? [];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const preds: Prediction[] = (rows ?? []).map((p: any) => ({
+        const preds: Prediction[] = rows.map((p: any) => ({
           ...p,
           sportsbook: p.sportsbook ?? p.book ?? p.Sportsbook,
           home_ml_prob: p.home_ml_prob !== undefined ? Number(p.home_ml_prob) : undefined,
@@ -134,7 +134,7 @@ export default function SportsbookHome() {
           edge_away: p.edge_away !== undefined ? Number(p.edge_away) : undefined,
         }));
         setData(preds);
-        setLastUpdated(new Date().toISOString());
+        setLastUpdated(json.last_updated ?? new Date().toISOString());
       } catch (err) {
         console.error(err);
         setError("Could not load today's MLB predictions.");
@@ -148,19 +148,12 @@ export default function SportsbookHome() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const { count: total, error: totalErr } = await supabase
-          .from("history")
-          .select("correct", { count: "exact", head: true })
-          .not("correct", "is", null);
-        if (totalErr) throw totalErr;
-
-        const { count: correct, error: correctErr } = await supabase
-          .from("history")
-          .select("correct", { count: "exact", head: true })
-          .eq("correct", true);
-        if (correctErr) throw correctErr;
-
-        setHistory({ total: total || 0, correct: correct || 0 });
+        const res = await fetch("/api/mlb/history");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const total = Number(json.total) || 0;
+        const correct = Number(json.correct) || 0;
+        setHistory({ total, correct });
       } catch (err) {
         console.error(err);
       }
@@ -450,7 +443,7 @@ export default function SportsbookHome() {
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4"/>
                 <h2 className="font-semibold">Today's MLB Moneyline Predictions</h2>
-                <Badge variant="secondary">Model v1.2</Badge>
+                <Badge variant="secondary">Model v1.1</Badge>
               </div>
               <div className="text-xs text-neutral-600 dark:text-neutral-400">
                 {isFinite(bankrollNum) && bankrollNum > 0 ? `Bankroll: $${bankrollNum.toFixed(2)}` : "Set bankroll to see bet sizing"}
