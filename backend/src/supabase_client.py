@@ -14,7 +14,7 @@ if _SUPABASE_URL and _SUPABASE_KEY:
 
 
 def upsert_predictions(df: pd.DataFrame, table: str = "predictions") -> None:
-    """Upload the day's predictions to Supabase.
+    """Upload the day's predictions to Supabase and clear stale data.
 
     Parameters
     ----------
@@ -28,6 +28,8 @@ def upsert_predictions(df: pd.DataFrame, table: str = "predictions") -> None:
 
     records = df.where(pd.notnull(df), None).to_dict("records")
     if records:
+        if table == "predictions":
+            _client.table(table).delete().neq("id", 0).execute()
         _client.table(table).upsert(records).execute()
 
 

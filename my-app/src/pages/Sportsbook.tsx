@@ -6,6 +6,7 @@ import { Input } from "../components/ui/input";
 import { Slider } from "../components/ui/slider";
 import { Switch } from "../components/ui/switch";
 import { Badge } from "../components/ui/badge";
+import { supabase } from "../lib/supabase";
 
 // --- Types ---
 interface Prediction {
@@ -23,7 +24,6 @@ interface Prediction {
   edge_home?: number;         // prob - implied (decimal)
   edge_away?: number;
   venue?: string;
-  note?: string;              // optional model note
 }
 
 // --- Helpers ---
@@ -50,6 +50,26 @@ const kellyFraction = (p: number | undefined, odds?: number) => {
   return f; // may be negative
 };
 
+type CsvRow = Record<string, string>;
+
+const parseCsv = (str: string): CsvRow[] => {
+  const lines = str.trim().split(/\r?\n/);
+  if (!lines.length) return [];
+  const headers = lines[0].split(',');
+  return lines.slice(1).filter(Boolean).map(line => {
+    const values = line.split(',');
+    const obj: CsvRow = {};
+    headers.forEach((h, i) => { obj[h] = values[i]; });
+    return obj;
+  });
+};
+
+const decimalToAmerican = (dec: string | number | undefined): number | undefined => {
+  const d = Number(dec);
+  if (!isFinite(d)) return undefined;
+  return d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1));
+};
+
 const fmtPct = (p: number | undefined) => (p === undefined || Number.isNaN(p) ? "—" : `${(p * 100).toFixed(1)}%`);
 const fmtOdds = (o: number | undefined) => (o === undefined || Number.isNaN(o) ? "—" : (o > 0 ? `+${Math.round(o)}` : `${Math.round(o)}`));
 const fmtMoney = (n: number | undefined) => (n === undefined || Number.isNaN(n) ? "—" : `$${n.toFixed(2)}`);
@@ -57,6 +77,7 @@ const toLocalTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour
 
 // --- Constants ---
 const SPORTSBOOKS = ["BetUS", "BetMGM", "FanDuel", "DraftKings"] as const;
+const SUPABASE_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET || 'games_today';
 
 // --- Lightweight Internal Tests ---
 function runInternalTests() {
@@ -117,23 +138,45 @@ export default function SportsbookHome() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/mlb/predictions");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const rows = json.predictions ?? [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const preds: Prediction[] = rows.map((p: any) => ({
-          ...p,
-          sportsbook: p.sportsbook ?? p.book ?? p.Sportsbook,
-          home_ml_prob: p.home_ml_prob !== undefined ? Number(p.home_ml_prob) : undefined,
-          away_ml_prob: p.away_ml_prob !== undefined ? Number(p.away_ml_prob) : undefined,
-          home_book_odds: p.home_book_odds !== undefined ? Number(p.home_book_odds) : undefined,
-          away_book_odds: p.away_book_odds !== undefined ? Number(p.away_book_odds) : undefined,
-          edge_home: p.edge_home !== undefined ? Number(p.edge_home) : undefined,
-          edge_away: p.edge_away !== undefined ? Number(p.edge_away) : undefined,
-        }));
-        setData(preds);
-        setLastUpdated(json.last_updated ?? new Date().toISOString());
+        const { data: file, error } = await supabase
+          .storage
+          .from(SUPABASE_BUCKET)
+          .download('games_today.csv');
+        if (error || !file) throw error || new Error('No data');
+        const csv = await file.text();
+        const rows = parseCsv(csv);
+        const grouped: Record<string, { game_id: string; commence_time: string; home_team: string; away_team: string; rows: CsvRow[] }> = {};
+        rows.forEach(r => {
+          const gid = r.game_id;
+          if (!grouped[gid]) {
+            grouped[gid] = { game_id: gid, commence_time: r.commence_time, home_team: r.home_team, away_team: r.away_team, rows: [] };
+          }
+          grouped[gid].rows.push(r);
+        });
+        const predictions: Prediction[] = Object.values(grouped).flatMap(g => {
+          const books = Array.from(new Set(g.rows.map(r => r.Sportsbook || r.book || r.Book)));
+          return books.map(book => {
+            const homeRow = g.rows.find(r => r.Team === g.home_team && (r.Sportsbook === book || r.book === book || r.Book === book));
+            const awayRow = g.rows.find(r => r.Team === g.away_team && (r.Sportsbook === book || r.book === book || r.Book === book));
+            return {
+              game_id: g.game_id,
+              start_time_utc: g.commence_time || null,
+              league: 'MLB',
+              home_team: g.home_team,
+              away_team: g.away_team,
+              sportsbook: book,
+              model: 'mlb_moneyline_v1',
+              home_ml_prob: homeRow ? Number(homeRow.Model_Prob) : undefined,
+              away_ml_prob: awayRow ? Number(awayRow.Model_Prob) : undefined,
+              home_book_odds: homeRow ? decimalToAmerican(homeRow.Odds) : undefined,
+              away_book_odds: awayRow ? decimalToAmerican(awayRow.Odds) : undefined,
+              edge_home: homeRow && homeRow.Edge ? Number(homeRow.Edge) : undefined,
+              edge_away: awayRow && awayRow.Edge ? Number(awayRow.Edge) : undefined,
+            } as Prediction;
+          });
+        });
+        setData(predictions);
+        setLastUpdated(new Date().toISOString());
       } catch (err) {
         console.error(err);
         setError("Could not load today's MLB predictions.");
@@ -563,7 +606,6 @@ export default function SportsbookHome() {
                             <span className="text-neutral-500">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 align-top text-sm text-neutral-700 dark:text-neutral-300">{g.note || ""}</td>
                       </tr>
                     );
                   })}
