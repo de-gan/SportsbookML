@@ -26,6 +26,25 @@ interface Prediction {
   venue?: string;
 }
 
+interface DbRow {
+  game_id: string;
+  commence_time: string;
+  home_team: string;
+  away_team: string;
+  Team: string;
+  Model_Prob: string | number;
+  Odds?: string | number;
+  Edge?: string | number;
+  Book?: string;
+  Sportsbook?: string;
+  book?: string;
+}
+
+interface HistoryRow {
+  Actual_Winner?: string | null;
+  correct?: number | string | null;
+}
+
 // --- Helpers ---
 const americanFromProb = (p: number) => {
   if (p <= 0 || p >= 1 || Number.isNaN(p)) return NaN;
@@ -50,19 +69,6 @@ const kellyFraction = (p: number | undefined, odds?: number) => {
   return f; // may be negative
 };
 
-type CsvRow = Record<string, string>;
-
-const parseCsv = (str: string): CsvRow[] => {
-  const lines = str.trim().split(/\r?\n/);
-  if (!lines.length) return [];
-  const headers = lines[0].split(',');
-  return lines.slice(1).filter(Boolean).map(line => {
-    const values = line.split(',');
-    const obj: CsvRow = {};
-    headers.forEach((h, i) => { obj[h] = values[i]; });
-    return obj;
-  });
-};
 
 const decimalToAmerican = (dec: string | number | undefined): number | undefined => {
   const d = Number(dec);
@@ -77,7 +83,6 @@ const toLocalTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour
 
 // --- Constants ---
 const SPORTSBOOKS = ["BetUS", "BetMGM", "FanDuel", "DraftKings"] as const;
-const SUPABASE_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET || 'games_today';
 
 // --- Lightweight Internal Tests ---
 function runInternalTests() {
@@ -138,15 +143,12 @@ export default function SportsbookHome() {
       setLoading(true);
       setError(null);
       try {
-        const { data: file, error } = await supabase
-          .storage
-          .from(SUPABASE_BUCKET)
-          .download('games_today.csv');
-        if (error || !file) throw error || new Error('No data');
-        const csv = await file.text();
-        const rows = parseCsv(csv);
-        const grouped: Record<string, { game_id: string; commence_time: string; home_team: string; away_team: string; rows: CsvRow[] }> = {};
-        rows.forEach(r => {
+        const { data: rows, error } = await supabase
+          .from('predictions')
+          .select('*');
+        if (error || !rows) throw error || new Error('No data');
+        const grouped: Record<string, { game_id: string; commence_time: string; home_team: string; away_team: string; rows: DbRow[] }> = {};
+        rows.forEach((r: DbRow) => {
           const gid = r.game_id;
           if (!grouped[gid]) {
             grouped[gid] = { game_id: gid, commence_time: r.commence_time, home_team: r.home_team, away_team: r.away_team, rows: [] };
@@ -154,10 +156,10 @@ export default function SportsbookHome() {
           grouped[gid].rows.push(r);
         });
         const predictions: Prediction[] = Object.values(grouped).flatMap(g => {
-          const books = Array.from(new Set(g.rows.map(r => r.Sportsbook || r.book || r.Book)));
+          const books = Array.from(new Set(g.rows.map((r: DbRow) => r.Sportsbook || r.book || r.Book)));
           return books.map(book => {
-            const homeRow = g.rows.find(r => r.Team === g.home_team && (r.Sportsbook === book || r.book === book || r.Book === book));
-            const awayRow = g.rows.find(r => r.Team === g.away_team && (r.Sportsbook === book || r.book === book || r.Book === book));
+            const homeRow = g.rows.find((r: DbRow) => r.Team === g.home_team && (r.Sportsbook === book || r.book === book || r.Book === book));
+            const awayRow = g.rows.find((r: DbRow) => r.Team === g.away_team && (r.Sportsbook === book || r.book === book || r.Book === book));
             return {
               game_id: g.game_id,
               start_time_utc: g.commence_time || null,
@@ -190,11 +192,13 @@ export default function SportsbookHome() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch("/api/mlb/history");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const total = Number(json.total) || 0;
-        const correct = Number(json.correct) || 0;
+        const { data: rows, error } = await supabase
+          .from('history')
+          .select('Actual_Winner, correct');
+        if (error || !rows) throw error || new Error('No data');
+        const finished = rows.filter((r: HistoryRow) => r.Actual_Winner);
+        const total = finished.length;
+        const correct = finished.filter((r: HistoryRow) => Number(r.correct) === 1).length;
         setHistory({ total, correct });
       } catch (err) {
         console.error(err);
