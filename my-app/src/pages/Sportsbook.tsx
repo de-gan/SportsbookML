@@ -6,6 +6,7 @@ import { Input } from "../components/ui/input";
 import { Slider } from "../components/ui/slider";
 import { Switch } from "../components/ui/switch";
 import { Badge } from "../components/ui/badge";
+import { supabase } from "../lib/supabase";
 
 // --- Types ---
 interface Prediction {
@@ -23,7 +24,25 @@ interface Prediction {
   edge_home?: number;         // prob - implied (decimal)
   edge_away?: number;
   venue?: string;
-  note?: string;              // optional model note
+}
+
+interface DbRow {
+  game_id: string;
+  commence_time: string;
+  home_team: string;
+  away_team: string;
+  Team: string;
+  Model_Prob: string | number;
+  Odds?: string | number;
+  Edge?: string | number;
+  Book?: string;
+  Sportsbook?: string;
+  book?: string;
+}
+
+interface HistoryRow {
+  Actual_Winner?: string | null;
+  correct?: number | string | null;
 }
 
 // --- Helpers ---
@@ -48,6 +67,13 @@ const kellyFraction = (p: number | undefined, odds?: number) => {
   const f = (b * p - (1 - p)) / b;
   if (!isFinite(f)) return undefined;
   return f; // may be negative
+};
+
+
+const decimalToAmerican = (dec: string | number | undefined): number | undefined => {
+  const d = Number(dec);
+  if (!isFinite(d)) return undefined;
+  return d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1));
 };
 
 const fmtPct = (p: number | undefined) => (p === undefined || Number.isNaN(p) ? "—" : `${(p * 100).toFixed(1)}%`);
@@ -117,22 +143,42 @@ export default function SportsbookHome() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/mlb/predictions?date=today`, { headers: { Accept: "application/json" } });
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        const payload = await res.json();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const preds: Prediction[] = (payload.predictions ?? []).map((p: any) => ({
-          ...p,
-          sportsbook: p.sportsbook ?? p.book ?? p.Sportsbook,
-          home_ml_prob: p.home_ml_prob !== undefined ? Number(p.home_ml_prob) : undefined,
-          away_ml_prob: p.away_ml_prob !== undefined ? Number(p.away_ml_prob) : undefined,
-          home_book_odds: p.home_book_odds !== undefined ? Number(p.home_book_odds) : undefined,
-          away_book_odds: p.away_book_odds !== undefined ? Number(p.away_book_odds) : undefined,
-          edge_home: p.edge_home !== undefined ? Number(p.edge_home) : undefined,
-          edge_away: p.edge_away !== undefined ? Number(p.edge_away) : undefined,
-        }));
-        setData(preds);
-        setLastUpdated(payload.last_updated ?? null);
+        const { data: rows, error } = await supabase
+          .from('predictions')
+          .select('*');
+        if (error || !rows) throw error || new Error('No data');
+        const grouped: Record<string, { game_id: string; commence_time: string; home_team: string; away_team: string; rows: DbRow[] }> = {};
+        rows.forEach((r: DbRow) => {
+          const gid = r.game_id;
+          if (!grouped[gid]) {
+            grouped[gid] = { game_id: gid, commence_time: r.commence_time, home_team: r.home_team, away_team: r.away_team, rows: [] };
+          }
+          grouped[gid].rows.push(r);
+        });
+        const predictions: Prediction[] = Object.values(grouped).flatMap(g => {
+          const books = Array.from(new Set(g.rows.map((r: DbRow) => r.Sportsbook || r.book || r.Book)));
+          return books.map(book => {
+            const homeRow = g.rows.find((r: DbRow) => r.Team === g.home_team && (r.Sportsbook === book || r.book === book || r.Book === book));
+            const awayRow = g.rows.find((r: DbRow) => r.Team === g.away_team && (r.Sportsbook === book || r.book === book || r.Book === book));
+            return {
+              game_id: g.game_id,
+              start_time_utc: g.commence_time || null,
+              league: 'MLB',
+              home_team: g.home_team,
+              away_team: g.away_team,
+              sportsbook: book,
+              model: 'mlb_moneyline_v1',
+              home_ml_prob: homeRow ? Number(homeRow.Model_Prob) : undefined,
+              away_ml_prob: awayRow ? Number(awayRow.Model_Prob) : undefined,
+              home_book_odds: homeRow ? decimalToAmerican(homeRow.Odds) : undefined,
+              away_book_odds: awayRow ? decimalToAmerican(awayRow.Odds) : undefined,
+              edge_home: homeRow && homeRow.Edge ? Number(homeRow.Edge) : undefined,
+              edge_away: awayRow && awayRow.Edge ? Number(awayRow.Edge) : undefined,
+            } as Prediction;
+          });
+        });
+        setData(predictions);
+        setLastUpdated(new Date().toISOString());
       } catch (err) {
         console.error(err);
         setError("Could not load today's MLB predictions.");
@@ -146,10 +192,14 @@ export default function SportsbookHome() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch('/api/mlb/history', { headers: { Accept: 'application/json' } });
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        const payload = await res.json();
-        setHistory(payload);
+        const { data: rows, error } = await supabase
+          .from('history')
+          .select('Actual_Winner, correct');
+        if (error || !rows) throw error || new Error('No data');
+        const finished = rows.filter((r: HistoryRow) => r.Actual_Winner);
+        const total = finished.length;
+        const correct = finished.filter((r: HistoryRow) => Number(r.correct) === 1).length;
+        setHistory({ total, correct });
       } catch (err) {
         console.error(err);
       }
@@ -439,7 +489,7 @@ export default function SportsbookHome() {
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4"/>
                 <h2 className="font-semibold">Today's MLB Moneyline Predictions</h2>
-                <Badge variant="secondary">Model v1.2</Badge>
+                <Badge variant="secondary">Model v1.1</Badge>
               </div>
               <div className="text-xs text-neutral-600 dark:text-neutral-400">
                 {isFinite(bankrollNum) && bankrollNum > 0 ? `Bankroll: $${bankrollNum.toFixed(2)}` : "Set bankroll to see bet sizing"}
@@ -560,7 +610,6 @@ export default function SportsbookHome() {
                             <span className="text-neutral-500">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 align-top text-sm text-neutral-700 dark:text-neutral-300">{g.note || ""}</td>
                       </tr>
                     );
                   })}

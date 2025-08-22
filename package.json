@@ -1,7 +1,10 @@
 {
   "dependencies": {
+    "@supabase/supabase-js": "^2.55.0",
+    "dotenv": "^16.4.5",
     "framer-motion": "^12.23.12",
-    "lucide-react": "^0.539.0"
+    "lucide-react": "^0.539.0",
+    "supabase": "^2.34.3"
   },
   "scripts": {
     "start": "node server.js"

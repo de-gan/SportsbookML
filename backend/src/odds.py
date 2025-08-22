@@ -20,7 +20,7 @@ def get_game_odds_today() -> pd.DataFrame:
     tomorrow = today + timedelta(days=1)
     tomorrow = str(tomorrow)
     params = {
-        "apiKey": os.getenv("API_KEY"),
+        "apiKey": os.getenv("ODDS_API_KEY"),
         #"regions": REGIONS,
         "markets": MARKETS,
         #"commenceTimeFrom": "2025-08-05T04:00:00Z",

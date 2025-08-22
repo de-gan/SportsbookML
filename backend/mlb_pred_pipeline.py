@@ -3,11 +3,13 @@ from urllib3.exceptions import NotOpenSSLWarning
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 
+import pandas as pd
 from datetime import date
 from src.load_process import update_season_data, get_teams_schedules, load_all_teams_data
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today, suggest_units
+from src.supabase_client import upsert_predictions, upload_file
 
 def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, max_bet_frac: float):
     pred_df = predict_for_date(date)
@@ -33,7 +35,21 @@ def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, 
     bets_to_place = bets_to_place.sort_values("Edge", ascending=False).reset_index(drop=True)
     print(bets_to_place.to_string(index=False))
 
-    merged.to_csv("data/processed/games_today.csv", index=False)
+    local_csv = "data/games_today.csv"
+    merged.to_csv(local_csv, index=False)
+
+    # Attempt to publish predictions to Supabase so the frontend can
+    # consume them directly from the database and storage bucket. Any
+    # failure here should not stop the pipeline from completing.
+    try:
+        upsert_predictions(merged)
+    except Exception as exc:
+        print(f"Failed to upload predictions to Supabase table: {exc}")
+
+    try:
+        upload_file(local_csv)
+    except Exception as exc:
+        print(f"Failed to upload predictions file to Supabase: {exc}")
 
 def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, min_edge: float = 0.05, max_bet_frac: float = 0.02):
     # Retrieve up-to-date raw game data
@@ -48,7 +64,9 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
     predict_and_odds(date, bankroll, kelly, min_edge, max_bet_frac)    
 
 if __name__ == '__main__':
-    d = date.today().strftime("%Y-%m-%d")
-    full_updated_odds(d)
+    #d = date.today().strftime("%Y-%m-%d")
+    #full_updated_odds(d)
     #load_all_teams_data(2023)
+    df = pd.read_csv("data/games_today.csv")
+    upsert_predictions(df, table="predictions")
     
