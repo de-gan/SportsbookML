@@ -30,6 +30,8 @@ def upsert_predictions(df: pd.DataFrame, table: str = "predictions") -> None:
     if records:
         if table == "predictions":
             _client.table(table).delete().neq("id", 0).execute()
+        if table == "history":
+            _client.table(table).delete().neq("id", 0).execute()
         _client.table(table).upsert(records).execute()
 
 
