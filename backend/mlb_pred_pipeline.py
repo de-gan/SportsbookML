@@ -10,15 +10,13 @@ from src.load_process import update_season_data, get_teams_schedules, load_all_t
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today, suggest_units
-from src.supabase_client import upsert_predictions, upload_file
+from src.supabase_client import upsert_predictions
 
 def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, max_bet_frac: float):
     pred_df = predict_for_date(date)
     odds_df = get_game_odds_today()
 
     merged = pred_df.merge(odds_df, on=["Team"], how="left")
-    # Keep home_team and away_team columns so downstream consumers can
-    # reconstruct full matchups from the CSV output.
 
     merged["Implied_Odds"] = (1 / merged["Odds"]).round(3)
     merged["Edge"] = (merged["Model_Prob"] - merged["Implied_Odds"]).round(3)
@@ -39,18 +37,10 @@ def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, 
     local_csv = "data/games_today.csv"
     merged.to_csv(local_csv, index=False)
 
-    # Attempt to publish predictions to Supabase so the frontend can
-    # consume them directly from the database and storage bucket. Any
-    # failure here should not stop the pipeline from completing.
     try:
         upsert_predictions(merged)
     except Exception as exc:
         print(f"Failed to upload predictions to Supabase table: {exc}")
-
-    try:
-        upload_file(local_csv)
-    except Exception as exc:
-        print(f"Failed to upload predictions file to Supabase: {exc}")
 
 def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, min_edge: float = 0.05, max_bet_frac: float = 0.02):
     # Retrieve up-to-date raw game data
@@ -60,6 +50,7 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
     update_season_data()
     df = pd.read_csv("data/pred_history.csv")
     df = df.replace([np.inf, -np.inf], None).where(pd.notnull(df), None)
+    df = df.astype(object).where(pd.notnull(df), None)
     upsert_predictions(df, table="history")
 
     # Create LightGBM models
@@ -68,13 +59,6 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
     predict_and_odds(date, bankroll, kelly, min_edge, max_bet_frac)    
 
 if __name__ == '__main__':
-    #d = date.today().strftime("%Y-%m-%d")
-    #full_updated_odds(d)
-    #load_all_teams_data(2023)
-    df = pd.read_csv("data/pred_history.csv")
-    df = df.replace([np.inf, -np.inf], None).where(pd.notnull(df), None)
-    df = df.astype(object).where(pd.notnull(df), None)
-    upsert_predictions(df, table="history")
-    #df = pd.read_csv("data/games_today.csv")
-    #upsert_predictions(df, table="predictions")
+    d = date.today().strftime("%Y-%m-%d")
+    full_updated_odds(d)
     
