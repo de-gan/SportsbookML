@@ -11,11 +11,18 @@ from src.feature_engineering import full_to_abbrev
 from src.pitchers import get_player_stats
 from src.lgbm_model import load_clf_model, FEATURES
 from src.fangraphs_stats import fg_team_snapshot
+from src.supabase_client import ensure_local_file
 
 HISTORY = "data/pred_history.csv"
 
 def load_processed_data(year: int) -> pd.DataFrame:
     path = f"data/processed/mlb_teams_schedules_{year}.csv"
+    bucket = os.getenv("SUPABASE_STORAGE_BUCKET")
+    if not os.path.exists(path) and bucket:
+        try:
+            ensure_local_file(bucket, f"processed/mlb_teams_schedules_{year}.csv", path)
+        except Exception as exc:
+            print(f"Warning: failed to download processed schedule from Supabase: {exc}")
     df = pd.read_csv(path, dtype={'Tm':str,'Opp':str}, parse_dates=['Date'])
     return df
 

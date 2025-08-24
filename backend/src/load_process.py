@@ -6,6 +6,7 @@ from pybaseball import schedule_and_record
 
 from src.feature_engineering import create_features, full_to_abbrev
 from src.pitchers import get_all_boxscores
+from src.supabase_client import ensure_local_file
 
 HISTORY = "data/pred_history.csv"
 
@@ -75,19 +76,36 @@ def get_teams_schedules(year: int = 2025) -> pd.DataFrame:
 # Returns a DataFrame containing the schedules and records of all teams (Processed).
 #
 def load_all_teams_data(year: int) -> pd.DataFrame:
-    # Load if CSV exists
+    # Load if CSV exists locally or download from Supabase storage
     rawpath = f"data/raw/mlb_teams_schedules_{year}.csv"
     newpath = f"data/processed/mlb_teams_schedules_{year}.csv"
+    bucket = os.getenv("SUPABASE_STORAGE_BUCKET")
+
     if os.path.exists(newpath):
         print(f"Loading CSV file: {newpath}")
         return pd.read_csv(newpath)
-    
-    elif os.path.exists(rawpath):
-        df = pd.read_csv(rawpath)
 
+    if bucket:
+        try:
+            ensure_local_file(bucket, f"processed/mlb_teams_schedules_{year}.csv", newpath)
+            print(f"Loading CSV file: {newpath}")
+            return pd.read_csv(newpath)
+        except Exception as exc:
+            print(f"Warning: failed to download processed schedule from Supabase: {exc}")
+
+    if os.path.exists(rawpath):
+        df = pd.read_csv(rawpath)
     else:
-        df = get_teams_schedules(year)
-        
+        if bucket:
+            try:
+                ensure_local_file(bucket, f"raw/mlb_teams_schedules_{year}.csv", rawpath)
+                df = pd.read_csv(rawpath)
+            except Exception as exc:
+                print(f"Warning: failed to download raw schedule from Supabase: {exc}")
+                df = get_teams_schedules(year)
+        else:
+            df = get_teams_schedules(year)
+
     return process_all_teams_data(year, df)
 
 #
