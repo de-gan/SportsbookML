@@ -60,9 +60,5 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
 
 if __name__ == '__main__':
     d = date.today().strftime("%Y-%m-%d")
-    #full_updated_odds(d)
-    try:
-        upload_file_to_bucket("data/processed/mlb_teams_schedules_2025.csv", dest_path=f"processed/mlb_teams_schedules_2025.csv")
-    except Exception as exc:
-        print(f"Failed to upload history CSV to Supabase storage: {exc}")
+    full_updated_odds(d)
     
