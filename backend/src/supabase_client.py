@@ -1,9 +1,10 @@
 import os
 from typing import Optional
-
 import pandas as pd
+from dotenv import load_dotenv
 from supabase import Client, create_client
 
+load_dotenv()
 _SUPABASE_URL: Optional[str] = os.getenv("SUPABASE_URL")
 _SUPABASE_KEY: Optional[str] = os.getenv("SUPABASE_KEY")
 _SUPABASE_BUCKET: Optional[str] = os.getenv("SUPABASE_BUCKET")
@@ -61,4 +62,4 @@ def upload_file_to_bucket(file_path: str, bucket: Optional[str] = None, dest_pat
 
     with open(file_path, "rb") as f:
         _client.storage.from_(bucket_name).upload(target_path, f, {"upsert": "true"})
-    print("Uploaded ", file_path, " to Supabase bucket)")
+    print("Uploaded", file_path, "to Supabase bucket")
