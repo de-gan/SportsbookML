@@ -37,6 +37,11 @@ def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, 
 
     local_csv = "data/games_today.csv"
     merged.to_csv(local_csv, index=False)
+    
+    try:
+        upload_file_to_bucket(local_csv)
+    except Exception as exc:
+        print(f"Failed to upload history CSV to Supabase storage: {exc}")
 
     try:
         upsert_predictions(merged)

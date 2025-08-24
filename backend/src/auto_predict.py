@@ -11,7 +11,7 @@ from src.feature_engineering import full_to_abbrev
 from src.pitchers import get_player_stats
 from src.lgbm_model import load_clf_model, FEATURES
 from src.fangraphs_stats import fg_team_snapshot
-from src.supabase_client import ensure_local_file
+from src.supabase_client import ensure_local_file, upload_file_to_bucket
 
 HISTORY = "data/pred_history.csv"
 
@@ -354,6 +354,10 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
     df = pd.DataFrame(rows, columns=cols)
     exists = os.path.exists(HISTORY)
     df.to_csv(HISTORY, mode="a", header=not exists, index=False)
+    try:
+        upload_file_to_bucket(HISTORY)
+    except Exception as exc:
+        print(f"Failed to upload history CSV to Supabase storage: {exc}")
     
     return long
 
