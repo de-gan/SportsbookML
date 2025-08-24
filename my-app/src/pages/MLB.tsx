@@ -40,6 +40,7 @@ interface DbRow {
   Book?: string;
   Sportsbook?: string;
   book?: string;
+  ["bookmakers.last_update"]?: string;
 }
 
 interface HistoryRow {
@@ -161,8 +162,14 @@ export default function SportsbookHome() {
           .from('predictions')
           .select('*');
         if (error || !rows) throw error || new Error('No data');
+
+        let latest: string | null = null;
         const grouped: Record<string, { game_id: string; commence_time: string; home_team: string; away_team: string; rows: DbRow[] }> = {};
         rows.forEach((r: DbRow) => {
+          const candidate = r["bookmakers.last_update"];
+          if (candidate && (!latest || candidate > latest)) {
+            latest = candidate;
+          }
           const gid = r.game_id;
           if (!grouped[gid]) {
             grouped[gid] = { game_id: gid, commence_time: r.commence_time, home_team: r.home_team, away_team: r.away_team, rows: [] };
@@ -192,7 +199,7 @@ export default function SportsbookHome() {
           });
         });
         setData(predictions);
-        setLastUpdated(new Date().toISOString());
+        setLastUpdated(latest);
       } catch (err) {
         console.error(err);
         setError("Could not load today's MLB predictions.");
