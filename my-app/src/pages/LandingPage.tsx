@@ -1,18 +1,19 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  TrendingUp,
+  HandCoins,
   Trophy,
   Brain,
   BarChart3,
-  ShieldCheck,
   Sparkles,
-  Rocket,
   LineChart,
   Wallet,
   Info,
   ExternalLink,
+  BadgeDollarSign,
 } from "lucide-react";
+import { BiBaseball, BiBasketball } from "react-icons/bi";
+import { PiFootball } from "react-icons/pi";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -66,16 +67,17 @@ export default function HomeLanding() {
       <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
           <motion.div initial={{opacity:0, y:-8}} animate={{opacity:1, y:0}} transition={{duration:0.35}} className="flex items-center gap-2">
-            <span className="p-2 rounded-2xl bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md">
-              <TrendingUp className="w-5 h-5" />
+            <span className="p-2 rounded-2xl bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 text-white shadow-md">
+              <HandCoins className="w-5 h-5" />
             </span>
-            <span className="text-xl font-semibold tracking-tight">EdgeFinder</span>
-            <Badge variant="secondary" className="ml-1">Beta</Badge>
+            <span className="text-xl font-semibold tracking-tight">UpperHand</span>
+            <Badge variant="secondary" className="ml-1 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700">Beta</Badge>
           </motion.div>
           <nav className="ml-auto flex items-center gap-1">
-            <Button asChild variant="ghost" className="gap-2"><a href="/mlb"><Trophy className="w-4 h-4"/> MLB</a></Button>
-            <Button variant="ghost" className="gap-2" disabled><LineChart className="w-4 h-4"/> NBA <span className="opacity-60">(soon)</span></Button>
-            <Button variant="ghost" className="gap-2" disabled><ShieldCheck className="w-4 h-4"/> NFL <span className="opacity-60">(soon)</span></Button>
+            <Button asChild variant="ghost" className="gap-2 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700"><a href="/"><Trophy className="w-4 h-4"/> Home</a></Button>
+            <Button asChild variant="ghost" className="gap-2"><a href="/mlb"><BiBaseball className="w-4 h-4"/> MLB</a></Button>
+            <Button variant="ghost" className="gap-2" disabled><BiBasketball className="w-4 h-4"/> NBA <span className="opacity-60">(soon)</span></Button>
+            <Button variant="ghost" className="gap-2" disabled><PiFootball className="w-4 h-4"/> NFL <span className="opacity-60">(soon)</span></Button>
             <Button asChild variant="ghost" className="gap-2"><a href="/about"><Info className="w-4 h-4"/> About</a></Button>
           </nav>
         </div>
@@ -86,14 +88,14 @@ export default function HomeLanding() {
         <section className="grid lg:grid-cols-2 gap-8 items-center">
           <motion.div initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} transition={{duration:0.45}}>
             <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-              Bet smarter with <span className="bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-600 bg-clip-text text-transparent">machine learning</span>
+              Bet smarter with <span className="bg-gradient-to-r from-cyan-700 via-indigo-600 to-teal-700 bg-clip-text text-transparent">machine learning</span>
             </h1>
             <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed text-lg">
-              EdgeFinder turns data into decisions. Explore transparent, model-driven predictions—starting with
+              UpperHand turns data into decisions. Explore transparent, model-driven predictions—starting with
               <span className="font-semibold"> MLB moneylines</span>—and see recommended bet sizes using Kelly staking.
             </p>
             <div className="flex flex-wrap gap-3 mt-5">
-              <Button asChild size="lg" className="gap-2"><a href="/mlb"><Rocket className="w-4 h-4"/> Explore Today’s MLB Picks</a></Button>
+              <Button asChild size="lg" className="gap-2"><a href="/mlb"><BiBaseball className="w-4 h-4"/> Explore Today’s MLB Picks</a></Button>
               <Button asChild variant="secondary" size="lg" className="gap-2"><a href="/methodology"><Brain className="w-4 h-4"/> Methodology</a></Button>
             </div>
             <div className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">Realtime slate, sortable edges, CSV export, and more.</div>
@@ -149,7 +151,7 @@ export default function HomeLanding() {
           {[
             { icon: <BarChart3 className="w-5 h-5"/>, title: "Model‑Driven Picks", desc: "Transparent probabilities and edges, updated daily for MLB." },
             { icon: <LineChart className="w-5 h-5"/>, title: "Edges at a Glance", desc: "Sort and filter to surface the best discrepancies vs. book lines." },
-            { icon: <ShieldCheck className="w-5 h-5"/>, title: "Bankroll‑Aware", desc: "Kelly staking guidance so sizing matches your risk tolerance." },
+            { icon: <BadgeDollarSign className="w-5 h-5"/>, title: "Bankroll‑Aware", desc: "Kelly staking guidance so sizing matches your risk tolerance." },
           ].map((f, i) => (
             <motion.div key={f.title} initial={{opacity:0, y:8}} whileInView={{opacity:1, y:0}} viewport={{once:true}} transition={{duration:0.35, delay:i*0.05}}>
               <Card className="rounded-2xl border-border/70 shadow-sm hover:shadow md:hover:shadow-md transition-shadow">
@@ -175,7 +177,7 @@ export default function HomeLanding() {
                   <h3 className="font-semibold">What’s next</h3>
                 </div>
                 <ul className="grid sm:grid-cols-2 gap-2 text-sm list-disc pl-5">
-                  <li>NBA & NFL moneylines and spreads</li>
+                  <li>NBA & NFL moneylines, spreads, and O/Us</li>
                   <li>Pricing EV calculators & portfolio view</li>
                   <li>Line movement & model versioning</li>
                   <li>CSV/API access for power users</li>
@@ -185,12 +187,12 @@ export default function HomeLanding() {
           </motion.div>
 
           <motion.div initial={{opacity:0, y:8}} whileInView={{opacity:1, y:0}} viewport={{once:true}} transition={{duration:0.45}}>
-            <Card className="rounded-2xl border-border/70 bg-gradient-to-br from-indigo-600 via-sky-500 to-emerald-600 text-white">
+            <Card className="rounded-2xl border-border/70 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700">
               <CardContent className="p-5">
                 <h3 className="font-semibold text-white mb-2">Jump in</h3>
                 <p className="text-sm/relaxed text-white/90 mb-4">See today’s projections and recommended stakes right now.</p>
                 <Button asChild size="lg" variant="secondary" className="w-full bg-white/15 hover:bg-white/25 text-white border-white/30">
-                  <a href="/mlb"><Trophy className="w-4 h-4"/> Go to MLB Predictions</a>
+                  <a href="/mlb"><BiBaseball className="w-4 h-4"/> Go to MLB Predictions</a>
                 </Button>
                 <div className="text-xs text-white/80 mt-3 flex items-center gap-1">
                   <Info className="w-3.5 h-3.5"/> Not financial advice. For informational use only.
@@ -202,7 +204,7 @@ export default function HomeLanding() {
 
         {/* Footer */}
         <footer className="mt-12 pb-10 text-sm text-neutral-600 dark:text-neutral-400 flex flex-wrap items-center gap-2">
-          <span>© {new Date().getFullYear()} EdgeFinder</span>
+          <span>© {new Date().getFullYear()} UpperHand</span>
           <span className="opacity-50">•</span>
           <a href="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></a>
           <span className="opacity-50">•</span>

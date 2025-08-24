@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Trophy, Sparkles, RefreshCcw, CloudOff, Download, Filter, HelpCircle, ExternalLink, HandCoins} from "lucide-react";
+import { Trophy, RefreshCcw, CloudOff, Download, Filter, ExternalLink, HandCoins, Info} from "lucide-react";
+import { BiBaseball, BiBasketball } from "react-icons/bi";
+import { PiFootball } from "react-icons/pi";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -81,6 +83,18 @@ const fmtOdds = (o: number | undefined) => (o === undefined || Number.isNaN(o) ?
 const fmtMoney = (n: number | undefined) => (n === undefined || Number.isNaN(n) ? "—" : `$${n.toFixed(2)}`);
 const toLocalTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+// Color gradient from indigo-600 (low) to teal-700 (high)
+const EDGE_LOW_RGB = [79, 70, 229];   // indigo-600
+const EDGE_HIGH_RGB = [16, 148, 85]; // teal
+const edgeColor = (val: number | undefined, min: number, max: number) => {
+  if (val === undefined || max <= min) return `rgb(${EDGE_HIGH_RGB.join(',')})`;
+  const t = (val - min) / (max - min);
+  const r = Math.round(EDGE_LOW_RGB[0] + t * (EDGE_HIGH_RGB[0] - EDGE_LOW_RGB[0]));
+  const g = Math.round(EDGE_LOW_RGB[1] + t * (EDGE_HIGH_RGB[1] - EDGE_LOW_RGB[1]));
+  const b = Math.round(EDGE_LOW_RGB[2] + t * (EDGE_HIGH_RGB[2] - EDGE_LOW_RGB[2]));
+  return `rgb(${r}, ${g}, ${b})`;
+};
+
 // --- Constants ---
 const SPORTSBOOKS = ["BetUS", "BetMGM", "FanDuel", "DraftKings"] as const;
 
@@ -123,9 +137,9 @@ export default function SportsbookHome() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [probViewAmerican, setProbViewAmerican] = useState(false);
-  const [minEdge, setMinEdge] = useState(0.08); // probability difference
+  const [minEdge, setMinEdge] = useState(0.1); // probability difference
   const [sortKey, setSortKey] = useState<"start" | "edge" | "prob" | "book">("edge");
-  const [sortDir, setSortDir] = useState<1 | -1>(-1);
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [selectedBooks, setSelectedBooks] = useState<string[]>([...SPORTSBOOKS]);
 
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -269,6 +283,23 @@ export default function SportsbookHome() {
     });
   }, [filtered, bankrollNum, maxBetNum, kellyMult]);
 
+  const edgeRange = useMemo(() => {
+    const edges: number[] = [];
+    withKelly.forEach((g) => {
+      const homeImp = impliedFromAmerican(g.home_book_odds);
+      const awayImp = impliedFromAmerican(g.away_book_odds);
+      const edgeH = g.edge_home ?? (homeImp !== undefined ? g.home_ml_prob - homeImp : undefined);
+      const edgeA = g.edge_away ?? (awayImp !== undefined ? g.away_ml_prob - awayImp : undefined);
+      const best = [edgeH, edgeA]
+        .filter((v): v is number => v !== undefined)
+        .sort((a, b) => b - a)[0];
+      if (best !== undefined) edges.push(best);
+    });
+    const min = edges.length ? Math.min(...edges) : 0;
+    const max = edges.length ? Math.max(...edges) : 0;
+    return { min, max };
+  }, [withKelly]);
+
   const sorted = useMemo(() => {
     const arr = [...withKelly];
     arr.sort((a, b) => {
@@ -341,31 +372,24 @@ export default function SportsbookHome() {
   };
 
   const Header = () => (
-    <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-neutral-200 dark:border-neutral-800">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-2xl bg-gradient-to-br from-blue-950 via-indigo-600 to-indigo-950 text-white shadow-md">
-            <HandCoins className="w-5 h-5" />
+    <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-2xl bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 text-white shadow-md">
+              <HandCoins className="w-5 h-5" />
+            </span>
+            <span className="text-xl font-semibold tracking-tight">UpperHand</span>
+            <Badge variant="secondary" className="ml-1 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700">Beta</Badge>
           </div>
-          <span className="text-xl font-semibold tracking-tight">UpperHand</span>
-          <Badge variant="secondary" className="ml-1 bg-indigo-600">Beta</Badge>
+          <nav className="ml-auto flex items-center gap-1">
+            <Button asChild variant="ghost" className="gap-2"><a href="/"><Trophy className="w-4 h-4"/> Home</a></Button>
+            <Button asChild variant="ghost" className="gap-2 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700"><a href="/mlb"><BiBaseball className="w-4 h-4"/> MLB</a></Button>
+            <Button variant="ghost" className="gap-2" disabled><BiBasketball className="w-4 h-4"/> NBA <span className="opacity-60">(soon)</span></Button>
+            <Button variant="ghost" className="gap-2" disabled><PiFootball className="w-4 h-4"/> NFL <span className="opacity-60">(soon)</span></Button>
+            <Button asChild variant="ghost" className="gap-2"><a href="/about"><Info className="w-4 h-4"/> About</a></Button>
+          </nav>
         </div>
-        <nav className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" className="gap-2" disabled>
-            <Sparkles className="w-4 h-4" /> NFL <span className="opacity-50">(soon)</span>
-          </Button>
-          <Button variant="ghost" className="gap-2" disabled>
-            NBA <span className="opacity-50">(soon)</span>
-          </Button>
-          <Button variant="ghost" className="gap-2 text-indigo-600">
-            <Trophy className="w-4 h-4" /> MLB
-          </Button>
-          <Button asChild variant="ghost" className="gap-2">
-            <a href="/about"><HelpCircle className="w-4 h-4"/> About</a>
-          </Button>
-        </nav>
-      </div>
-    </header>
+      </header>
   );
 
   return (
@@ -429,7 +453,7 @@ export default function SportsbookHome() {
                                 : prev.filter((sb) => sb !== b)
                             )
                           }
-                          className="rounded border-neutral-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:bg-neutral-800 dark:border-neutral-700"
+                          className="rounded border-neutral-300 text-indigo-600 accent-indigo-600 shadow-sm focus:ring-indigo-500 dark:bg-neutral-800 dark:border-neutral-700"
                         />
                         {b}
                       </label>
@@ -480,7 +504,7 @@ export default function SportsbookHome() {
                 <></>
               </div>
               <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2 overflow-hidden">
-                <div className="bg-green-600 h-full" style={{ width: `${(history.correct / history.total) * 100}%` }}></div>
+                <div className="bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 h-full" style={{ width: `${(history.correct / history.total) * 100}%` }}></div>
               </div>
             </div>
           )}
@@ -489,7 +513,7 @@ export default function SportsbookHome() {
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4"/>
                 <h2 className="font-semibold">Today's MLB Moneyline Predictions</h2>
-                <Badge variant="secondary">Model v1.1</Badge>
+                <Badge variant="secondary">Model v1.2</Badge>
               </div>
               <div className="text-xs text-neutral-600 dark:text-neutral-400">
                 {isFinite(bankrollNum) && bankrollNum > 0 ? `Bankroll: $${bankrollNum.toFixed(2)}` : "Set bankroll to see bet sizing"}
@@ -557,6 +581,7 @@ export default function SportsbookHome() {
                       .filter((v): v is number => v !== undefined)
                       .sort((a, b) => b - a)[0];
                     const negativeEdge = bestEdgeVal !== undefined && bestEdgeVal < 0;
+                    const edgeTextColor = edgeColor(bestEdgeVal, edgeRange.min, edgeRange.max);
 
                     return (
                       <tr key={`${g.game_id}-${g.sportsbook}`} className="border-t border-neutral-200/60 dark:border-neutral-800/60">
@@ -570,7 +595,7 @@ export default function SportsbookHome() {
                           <div className="flex flex-col gap-1">
                             <div className="text-xs uppercase tracking-wide text-neutral-500">Favored</div>
                             <div className="flex items-center gap-2">
-                              <Badge className="bg-green-600">{favTeam}</Badge>
+                              <Badge className="bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 text-white">{favTeam}</Badge>
                               <span className="text-sm">
                                 {probViewAmerican ? fmtOdds(favOdds) : fmtPct(favProb)}
                               </span>
@@ -592,7 +617,9 @@ export default function SportsbookHome() {
                           </div>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <div className={`text-sm font-semibold ${bestEdgeVal !== undefined ? 'text-green-600' : ''}`}>{bestEdgeVal !== undefined ? `${(bestEdgeVal * 100).toFixed(1)} pp` : "—"}</div>
+                          <div className="text-sm font-semibold" style={edgeTextColor ? { color: edgeTextColor } : undefined}>
+                            {bestEdgeVal !== undefined ? `${(bestEdgeVal * 100).toFixed(1)} pp` : "—"}
+                          </div>
                           <div className="text-xs text-neutral-500">vs book implied</div>
                         </td>
                         <td className="px-4 py-3 align-top text-sm">
@@ -619,13 +646,21 @@ export default function SportsbookHome() {
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="mt-10 pb-10 text-sm text-neutral-600 dark:text-neutral-400">
           <center>
             These model outputs are informational and not financial advice. Edges and odds are computed from model probabilities and optional bookmaker lines when provided.
             <br/>
             Data is for informational and educational purposes only and is not a solicitation to gamble. Use at your own risk.
           </center>
+        </footer>
+
+        {/* Footer */}
+        <footer className="mt-12 pb-10 text-sm text-neutral-600 dark:text-neutral-400 flex flex-wrap items-center gap-2">
+          <span>© {new Date().getFullYear()} UpperHand</span>
+          <span className="opacity-50">•</span>
+          <a href="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></a>
+          <span className="opacity-50">•</span>
+          <a href="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></a>
         </footer>
       </main>
     </div>

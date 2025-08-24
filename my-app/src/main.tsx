@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import SportsbookHome from './pages/Sportsbook.tsx'
+import SportsbookHome from './pages/MLB.tsx'
 import HomeLanding from './pages/LandingPage.tsx'
 import Methodology from './pages/Methodology.tsx'
 import About from './pages/About.tsx'
