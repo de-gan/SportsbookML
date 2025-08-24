@@ -10,7 +10,7 @@ available sportsbook odds.
   features and training the prediction model. Running
   `python backend/mlb_pred_pipeline.py` produces a
   `data/processed/games_today.csv` file with the latest model
-  probabilities and edges.
+  probabilities and edges and can optionally upload them to a Supabase table.
 - `server.js` &ndash; a small Node HTTP server that exposes the predictions
   as JSON at `/api/mlb/predictions` by reading the
   `data/processed/games_today.csv` file.
@@ -21,7 +21,17 @@ available sportsbook odds.
 
 1. **Generate predictions**
 
+   The pipeline writes predictions to `data/processed/games_today.csv` and, if
+   the `SUPABASE_URL` and `SUPABASE_KEY` environment variables are set, also
+   publishes the results to a Supabase table for the frontend to consume. When
+   `SUPABASE_BUCKET` is set, required CSV inputs such as player IDs and
+   team schedules will be downloaded from that storage bucket instead of being
+   committed to the repository.
+
    ```bash
+   export SUPABASE_URL="https://your-project.supabase.co"
+   export SUPABASE_KEY="service_role_key"
+   export SUPABASE_BUCKET="mlb-data"
    python backend/mlb_pred_pipeline.py
    ```
 
@@ -41,6 +51,21 @@ available sportsbook odds.
    ```
 
    The development server runs on <http://localhost:5173>.
+
+## Deployment
+
+The frontend can be deployed to Vercel and backed by a Supabase project for
+storage.
+
+1. Create a Supabase project and note the project URL and anon key. Add them to
+   `my-app/.env` based on the provided `.env.example` file.
+2. Commit your changes and push to a Vercel-connected repository. Vercel reads
+   the `vercel.json` file and builds the Vite project in `my-app/`.
+3. Configure the `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment
+   variables in your Vercel project settings.
+
+After deployment, the site will fetch predictions and history directly from
+Supabase tables (`predictions` and `history`).
 
 ## Goals
 

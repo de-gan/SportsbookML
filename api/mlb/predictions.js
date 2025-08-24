@@ -1,8 +1,5 @@
-require("dotenv").config();
-const http = require('http');
 const { createClient } = require('@supabase/supabase-js');
 
-const PORT = process.env.PORT || 3001;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'mlb-data';
@@ -28,7 +25,12 @@ function decimalToAmerican(dec) {
   return Math.round(-100 / (d - 1));
 }
 
-async function handlePredictions(req, res) {
+module.exports = async function handler(req, res) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
   try {
     const { data, error } = await supabase
       .storage
@@ -37,6 +39,7 @@ async function handlePredictions(req, res) {
     if (error || !data) throw error || new Error('No data');
     const csv = await data.text();
     const rows = parseCsv(csv);
+
     const grouped = {};
     rows.forEach(r => {
       const gid = r.game_id;
@@ -45,7 +48,7 @@ async function handlePredictions(req, res) {
       }
       grouped[gid].rows.push(r);
     });
-    // Build a prediction entry for every sportsbook represented in the rows
+
     const predictions = Object.values(grouped).flatMap(g => {
       const books = Array.from(new Set(g.rows.map(r => r.Sportsbook || r.book || r.Book)));
       return books.map(book => {
@@ -69,52 +72,10 @@ async function handlePredictions(req, res) {
         };
       });
     });
-    const body = JSON.stringify({ predictions, last_updated: new Date().toISOString() });
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(body);
+
+    res.status(200).json({ predictions, last_updated: new Date().toISOString() });
   } catch (err) {
     console.error(err);
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Failed to load predictions' }));
+    res.status(500).json({ error: 'Failed to load predictions' });
   }
-}
-
-async function handleHistory(req, res) {
-  try {
-    const { data, error } = await supabase
-      .storage
-      .from(SUPABASE_BUCKET)
-      .download('pred_history.csv');
-    if (error || !data) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ total: 0, correct: 0 }));
-      return;
-    }
-    const csv = await data.text();
-    const rows = parseCsv(csv);
-    const finished = rows.filter(r => r.Actual_Winner);
-    const correct = finished.filter(r => Number(r.correct) === 1).length;
-    const total = finished.length;
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ total, correct }));
-  } catch (err) {
-    console.error(err);
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Failed to load history' }));
-  }
-}
-
-const server = http.createServer(async (req, res) => {
-  if (req.method === 'GET' && req.url && req.url.startsWith('/api/mlb/predictions')) {
-    await handlePredictions(req, res);
-  } else if (req.method === 'GET' && req.url && req.url.startsWith('/api/mlb/history')) {
-    await handleHistory(req, res);
-  } else {
-    res.statusCode = 404;
-    res.end('Not found');
-  }
-});
-
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+};
