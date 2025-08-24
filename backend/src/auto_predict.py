@@ -17,8 +17,8 @@ HISTORY = "data/pred_history.csv"
 
 def load_processed_data(year: int) -> pd.DataFrame:
     path = f"data/processed/mlb_teams_schedules_{year}.csv"
-    bucket = os.getenv("SUPABASE_STORAGE_BUCKET")
-    if not os.path.exists(path) and bucket:
+    bucket = os.getenv("SUPABASE_BUCKET")
+    if bucket:
         try:
             ensure_local_file(bucket, f"processed/mlb_teams_schedules_{year}.csv", path)
         except Exception as exc:
@@ -278,8 +278,14 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
     except ValueError:
         raise SystemExit(f"Error: date must be YYYY-MM-DD, got '{date_str}'")
 
-    raw = pd.read_csv(f"data/raw/mlb_teams_schedules_{target.year}.csv",
-                  parse_dates=['Date'])
+    raw_path = f"data/raw/mlb_teams_schedules_{target.year}.csv"
+    bucket = os.getenv("SUPABASE_BUCKET")
+    if bucket:
+        try:
+            ensure_local_file(bucket, f"raw/mlb_teams_schedules_{target.year}.csv", raw_path)
+        except Exception as exc:
+            print(f"Warning: failed to download raw schedule from Supabase: {exc}")
+    raw = pd.read_csv(raw_path, parse_dates=['Date'])
 
     snap_cache = {}
 

@@ -12,7 +12,7 @@ jobs:
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-      SUPABASE_STORAGE_BUCKET: ${{ secrets.SUPABASE_STORAGE_BUCKET }}
+      SUPABASE_BUCKET: ${{ secrets.SUPABASE_BUCKET }}
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5

@@ -18,7 +18,7 @@ requests_cache.install_cache('bbref_cache', expire_after=86400)
 session = requests_cache.CachedSession()
 
 PID_CSV = "data/playerid_list.csv"
-_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET")
+_BUCKET = os.getenv("SUPABASE_BUCKET")
 if _BUCKET:
     try:
         ensure_local_file(_BUCKET, "playerid_list.csv", PID_CSV)

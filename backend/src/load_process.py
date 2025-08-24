@@ -85,32 +85,26 @@ def load_all_teams_data(year: int) -> pd.DataFrame:
     # Load if CSV exists locally or download from Supabase storage
     rawpath = f"data/raw/mlb_teams_schedules_{year}.csv"
     newpath = f"data/processed/mlb_teams_schedules_{year}.csv"
-    bucket = os.getenv("SUPABASE_STORAGE_BUCKET")
+    bucket = os.getenv("SUPABASE_BUCKET")
+
+    if bucket:
+        try:
+            ensure_local_file(bucket, f"processed/mlb_teams_schedules_{year}.csv", newpath)
+        except Exception as exc:
+            print(f"Warning: failed to download processed schedule from Supabase: {exc}")
+        try:
+            ensure_local_file(bucket, f"raw/mlb_teams_schedules_{year}.csv", rawpath)
+        except Exception as exc:
+            print(f"Warning: failed to download raw schedule from Supabase: {exc}")
 
     if os.path.exists(newpath):
         print(f"Loading CSV file: {newpath}")
         return pd.read_csv(newpath)
 
-    if bucket:
-        try:
-            ensure_local_file(bucket, f"processed/mlb_teams_schedules_{year}.csv", newpath)
-            print(f"Loading CSV file: {newpath}")
-            return pd.read_csv(newpath)
-        except Exception as exc:
-            print(f"Warning: failed to download processed schedule from Supabase: {exc}")
-
     if os.path.exists(rawpath):
         df = pd.read_csv(rawpath)
     else:
-        if bucket:
-            try:
-                ensure_local_file(bucket, f"raw/mlb_teams_schedules_{year}.csv", rawpath)
-                df = pd.read_csv(rawpath)
-            except Exception as exc:
-                print(f"Warning: failed to download raw schedule from Supabase: {exc}")
-                df = get_teams_schedules(year)
-        else:
-            df = get_teams_schedules(year)
+        df = get_teams_schedules(year)
 
     return process_all_teams_data(year, df)
 
@@ -121,6 +115,19 @@ def load_all_teams_data(year: int) -> pd.DataFrame:
 #
 def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
     feats_path = f"data/processed/mlb_teams_schedules_{year}_individual.csv"
+    bucket = os.getenv("SUPABASE_BUCKET")
+
+    if bucket:
+        try:
+            ensure_local_file(
+                bucket,
+                f"processed/mlb_teams_schedules_{year}_individual.csv",
+                feats_path,
+            )
+        except Exception as exc:
+            print(
+                f"Warning: failed to download individual processed schedules from Supabase: {exc}"
+            )
 
     if os.path.exists(feats_path):
         done = pd.read_csv(
@@ -148,6 +155,18 @@ def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
             index  = False
         )
         print(f"✔ Finished {team}")
+        
+    if bucket:
+        try:
+            ensure_local_file(
+                bucket,
+                f"processed/mlb_teams_schedules_{year}_individual.csv",
+                feats_path,
+            )
+        except Exception as exc:
+            print(
+                f"Warning: failed to download individual processed schedules from Supabase: {exc}"
+            )
         
     all_feats = pd.read_csv(
         feats_path,
@@ -227,6 +246,12 @@ def process_team_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
 #
 def load_team_schedule_CSV(team: str, year: int) -> pd.DataFrame:
     filepath = f"data/processed/mlb_teams_schedules_{year}.csv"
+    bucket = os.getenv("SUPABASE_BUCKET")
+    if bucket:
+        try:
+            ensure_local_file(bucket, f"processed/mlb_teams_schedules_{year}.csv", filepath)
+        except Exception as exc:
+            print(f"Warning: failed to download processed schedule from Supabase: {exc}")
     print(f"Loading cached file: {filepath}")
     df = pd.read_csv(filepath)
     df = df[df['Tm'] == team]
@@ -238,6 +263,12 @@ def load_team_schedule_CSV(team: str, year: int) -> pd.DataFrame:
 #
 def load_team_schedule_raw_CSV(team: str, year: int) -> pd.DataFrame:
     filepath = f"data/raw/mlb_teams_schedules_{year}.csv"
+    bucket = os.getenv("SUPABASE_BUCKET")
+    if bucket:
+        try:
+            ensure_local_file(bucket, f"raw/mlb_teams_schedules_{year}.csv", filepath)
+        except Exception as exc:
+            print(f"Warning: failed to download raw schedule from Supabase: {exc}")
 
     if os.path.exists(filepath):
         print(f"Loading cached file: {filepath}")
@@ -250,6 +281,12 @@ def load_team_schedule_raw_CSV(team: str, year: int) -> pd.DataFrame:
 
 
 def logging_actual_winners(processed_df: pd.DataFrame, pred_csv: str = HISTORY):
+    bucket = os.getenv("SUPABASE_BUCKET")
+    if bucket:
+        try:
+            ensure_local_file(bucket, "pred_history.csv", pred_csv)
+        except Exception as exc:
+            print(f"Warning: failed to download prediction history from Supabase: {exc}")
     if not os.path.exists(pred_csv):
         print("No prediction history file found.")
         return None
@@ -300,10 +337,28 @@ def update_season_data(year: int = 2025):
     raw_df must have at least columns ['Date','Tm','Opp',…]
     with Date as datetime64[ns].
     """
-    raw_df = pd.read_csv(f"data/raw/mlb_teams_schedules_{year}.csv", parse_dates=['Date'])
-    
+    raw_path = f"data/raw/mlb_teams_schedules_{year}.csv"
     feats_path = f"data/processed/mlb_teams_schedules_{year}_individual.csv"
     final_path = f"data/processed/mlb_teams_schedules_{year}.csv"
+    bucket = os.getenv("SUPABASE_BUCKET")
+
+    if bucket:
+        try:
+            ensure_local_file(bucket, f"raw/mlb_teams_schedules_{year}.csv", raw_path)
+        except Exception as exc:
+            print(f"Warning: failed to download raw schedule from Supabase: {exc}")
+        try:
+            ensure_local_file(
+                bucket,
+                f"processed/mlb_teams_schedules_{year}_individual.csv",
+                feats_path,
+            )
+        except Exception as exc:
+            print(
+                f"Warning: failed to download individual processed schedules from Supabase: {exc}"
+            )
+
+    raw_df = pd.read_csv(raw_path, parse_dates=['Date'])
     
     if raw_df['Date'].dtype == object or not pd.api.types.is_datetime64_any_dtype(raw_df['Date']):
         raw_df['Date'] = pd.to_datetime(raw_df['Date'] + f" {year}", format='%A, %b %d %Y')
@@ -389,6 +444,18 @@ def update_season_data(year: int = 2025):
         st = tm_feats.pop("Streak")
         tm_feats.insert(13, "Streak", st)
         tm_feats.to_csv(feats_path, mode='a', header=False, index=False)
+    
+    if bucket:
+        try:
+            ensure_local_file(
+                bucket,
+                f"processed/mlb_teams_schedules_{year}_individual.csv",
+                feats_path,
+            )
+        except Exception as exc:
+            print(
+                f"Warning: failed to download individual processed schedules from Supabase: {exc}"
+            )
     
     all_feats = pd.read_csv(feats_path)
     full = get_opponent_features(all_feats)

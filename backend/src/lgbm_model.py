@@ -292,7 +292,7 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
 
 def load_reg_model(model_path: str) -> lgb.Booster:
     if not os.path.exists(model_path):
-        bucket = os.getenv("SUPABASE_STORAGE_BUCKET")
+        bucket = os.getenv("SUPABASE_BUCKET")
         if bucket:
             try:
                 ensure_local_file(bucket, model_path, model_path)
@@ -308,7 +308,7 @@ def load_reg_model(model_path: str) -> lgb.Booster:
 
 def load_clf_model(model_path: str) -> lgb.Booster:
     if not os.path.exists(model_path):
-        bucket = os.getenv("SUPABASE_STORAGE_BUCKET")
+        bucket = os.getenv("SUPABASE_BUCKET")
         if bucket:
             try:
                 ensure_local_file(bucket, model_path, model_path)

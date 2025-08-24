@@ -3,6 +3,7 @@ from urllib3.exceptions import NotOpenSSLWarning
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 
+import os
 import pandas as pd
 import numpy as np
 from datetime import date
@@ -10,7 +11,7 @@ from src.load_process import update_season_data, get_teams_schedules, load_all_t
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today, suggest_units
-from src.supabase_client import upsert_predictions, upload_file_to_bucket
+from src.supabase_client import upsert_predictions, upload_file_to_bucket, ensure_local_file
 
 def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, max_bet_frac: float):
     pred_df = predict_for_date(date)
@@ -48,7 +49,14 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
 
     # Update processed data
     update_season_data()
-    df = pd.read_csv("data/pred_history.csv")
+    path = "data/pred_history.csv"
+    bucket = os.getenv("SUPABASE_BUCKET")
+    if bucket:
+        try:
+            ensure_local_file(bucket, "pred_history.csv", path)
+        except Exception as exc:
+            print(f"Warning: failed to download prediction history from Supabase: {exc}")
+    df = pd.read_csv(path)
     df = df.replace([np.inf, -np.inf], None).where(pd.notnull(df), None)
     df = df.astype(object).where(pd.notnull(df), None)
     upsert_predictions(df, table="history")
