@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split, StratifiedKFold, Randomize
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, root_mean_squared_error, r2_score
 
 from src.load_process import load_all_teams_data
+from src.supabase_client import upload_file_to_bucket, ensure_local_file
 
 # Recently removed:
 # 'R_MA3', 'R_MA5', 'R_MA10', 
@@ -291,14 +292,32 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
 
 def load_reg_model(model_path: str) -> lgb.Booster:
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Regression model file not found: {model_path}")
+        bucket = os.getenv("SUPABASE_STORAGE_BUCKET")
+        if bucket:
+            try:
+                ensure_local_file(bucket, model_path, model_path)
+            except Exception as exc:
+                raise FileNotFoundError(
+                    f"Regression model file not found: {model_path}"
+                ) from exc
+        else:
+            raise FileNotFoundError(f"Regression model file not found: {model_path}")
     
     model = lgb.Booster(model_file=model_path)
     return model
 
 def load_clf_model(model_path: str) -> lgb.Booster:
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Classification model file not found: {model_path}")
+        bucket = os.getenv("SUPABASE_STORAGE_BUCKET")
+        if bucket:
+            try:
+                ensure_local_file(bucket, model_path, model_path)
+            except Exception as exc:
+                raise FileNotFoundError(
+                    f"Classification model file not found: {model_path}"
+                ) from exc
+        else:
+            raise FileNotFoundError(f"Classification model file not found: {model_path}")
     
     model = lgb.Booster(model_file=model_path)
     return model
@@ -312,3 +331,8 @@ def create_models():
     train_lgbm_classification_model(df)
     train_run_diff_model(df)
     train_run_total_model(df)
+    
+    try:
+        upload_file_to_bucket("models/wl_lgbm.txt", dest_path=f"models/wl_lgbm.txt")
+    except Exception as exc:
+        print(f"Failed to upload history CSV to Supabase storage: {exc}")
