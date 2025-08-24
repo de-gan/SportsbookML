@@ -7,6 +7,7 @@ from pybaseball import schedule_and_record
 from src.feature_engineering import create_features, full_to_abbrev
 from src.pitchers import get_all_boxscores
 from src.supabase_client import ensure_local_file
+from src.supabase_client import upload_file_to_bucket
 
 HISTORY = "data/pred_history.csv"
 
@@ -68,6 +69,11 @@ def get_teams_schedules(year: int = 2025) -> pd.DataFrame:
     df.dropna(subset=['Boxscore'], inplace=True)
     
     df.to_csv(rawpath, index=False)
+    
+    try:
+        upload_file_to_bucket(rawpath, dest_path=f"raw/mlb_teams_schedules_{year}.csv")
+    except Exception as exc:
+        print(f"Failed to upload history CSV to Supabase storage: {exc}")
     
     return df
 
@@ -152,6 +158,11 @@ def process_all_teams_data(year: int, df: pd.DataFrame) -> pd.DataFrame:
 
     outpath = f"data/processed/mlb_teams_schedules_{year}.csv"
     full.to_csv(outpath, index=False)
+    try:
+        upload_file_to_bucket(outpath, dest_path=f"processed/mlb_teams_schedules_{year}.csv")
+    except Exception as exc:
+        print(f"Failed to upload history CSV to Supabase storage: {exc}")
+    
     return full
 
 def get_opponent_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -384,4 +395,13 @@ def update_season_data(year: int = 2025):
     full.to_csv(final_path, index=False)
     logging_actual_winners(full)
     print("✅ Updated processed file written to", final_path)
+    try:
+        upload_file_to_bucket(final_path, dest_path=f"processed/mlb_teams_schedules_{year}.csv")
+    except Exception as exc:
+        print(f"Failed to upload history CSV to Supabase storage: {exc}")
+    try:
+        upload_file_to_bucket(feats_path, dest_path=f"processed/mlb_teams_schedules_{year}_individual.csv")
+    except Exception as exc:
+        print(f"Failed to upload history CSV to Supabase storage: {exc}")
+    
     return full

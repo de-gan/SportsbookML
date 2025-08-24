@@ -10,7 +10,7 @@ from src.load_process import update_season_data, get_teams_schedules, load_all_t
 from src.lgbm_model import create_models
 from src.auto_predict import predict_for_date
 from src.odds import get_game_odds_today, suggest_units
-from src.supabase_client import upsert_predictions
+from src.supabase_client import upsert_predictions, upload_file_to_bucket
 
 def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, max_bet_frac: float):
     pred_df = predict_for_date(date)
@@ -60,5 +60,9 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
 
 if __name__ == '__main__':
     d = date.today().strftime("%Y-%m-%d")
-    full_updated_odds(d)
+    #full_updated_odds(d)
+    try:
+        upload_file_to_bucket("data/processed/mlb_teams_schedules_2025.csv", dest_path=f"processed/mlb_teams_schedules_2025.csv")
+    except Exception as exc:
+        print(f"Failed to upload history CSV to Supabase storage: {exc}")
     
