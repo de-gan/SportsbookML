@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Trophy, Sparkles, RefreshCcw, CloudOff, Download, Filter, HelpCircle, ExternalLink, HandCoins} from "lucide-react";
+import { Trophy, RefreshCcw, CloudOff, Download, Filter, ExternalLink, HandCoins, Info} from "lucide-react";
+import { BiBaseball, BiBasketball } from "react-icons/bi";
+import { PiFootball } from "react-icons/pi";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -341,31 +343,24 @@ export default function SportsbookHome() {
   };
 
   const Header = () => (
-    <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-neutral-200 dark:border-neutral-800">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-2xl bg-gradient-to-br from-blue-950 via-indigo-600 to-indigo-950 text-white shadow-md">
-            <HandCoins className="w-5 h-5" />
+    <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-2xl bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 text-white shadow-md">
+              <HandCoins className="w-5 h-5" />
+            </span>
+            <span className="text-xl font-semibold tracking-tight">UpperHand</span>
+            <Badge variant="secondary" className="ml-1 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700">Beta</Badge>
           </div>
-          <span className="text-xl font-semibold tracking-tight">UpperHand</span>
-          <Badge variant="secondary" className="ml-1 bg-indigo-600">Beta</Badge>
+          <nav className="ml-auto flex items-center gap-1">
+            <Button asChild variant="ghost" className="gap-2"><a href="/"><Trophy className="w-4 h-4"/> Home</a></Button>
+            <Button asChild variant="ghost" className="gap-2 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700"><a href="/mlb"><BiBaseball className="w-4 h-4"/> MLB</a></Button>
+            <Button variant="ghost" className="gap-2" disabled><BiBasketball className="w-4 h-4"/> NBA <span className="opacity-60">(soon)</span></Button>
+            <Button variant="ghost" className="gap-2" disabled><PiFootball className="w-4 h-4"/> NFL <span className="opacity-60">(soon)</span></Button>
+            <Button asChild variant="ghost" className="gap-2"><a href="/about"><Info className="w-4 h-4"/> About</a></Button>
+          </nav>
         </div>
-        <nav className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" className="gap-2" disabled>
-            <Sparkles className="w-4 h-4" /> NFL <span className="opacity-50">(soon)</span>
-          </Button>
-          <Button variant="ghost" className="gap-2" disabled>
-            NBA <span className="opacity-50">(soon)</span>
-          </Button>
-          <Button variant="ghost" className="gap-2 text-indigo-600">
-            <Trophy className="w-4 h-4" /> MLB
-          </Button>
-          <Button asChild variant="ghost" className="gap-2">
-            <a href="/about"><HelpCircle className="w-4 h-4"/> About</a>
-          </Button>
-        </nav>
-      </div>
-    </header>
+      </header>
   );
 
   return (
@@ -429,7 +424,7 @@ export default function SportsbookHome() {
                                 : prev.filter((sb) => sb !== b)
                             )
                           }
-                          className="rounded border-neutral-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:bg-neutral-800 dark:border-neutral-700"
+                          className="rounded border-neutral-300 text-indigo-600 accent-indigo-600 shadow-sm focus:ring-indigo-500 dark:bg-neutral-800 dark:border-neutral-700"
                         />
                         {b}
                       </label>
@@ -489,7 +484,7 @@ export default function SportsbookHome() {
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4"/>
                 <h2 className="font-semibold">Today's MLB Moneyline Predictions</h2>
-                <Badge variant="secondary">Model v1.1</Badge>
+                <Badge variant="secondary">Model v1.2</Badge>
               </div>
               <div className="text-xs text-neutral-600 dark:text-neutral-400">
                 {isFinite(bankrollNum) && bankrollNum > 0 ? `Bankroll: $${bankrollNum.toFixed(2)}` : "Set bankroll to see bet sizing"}
@@ -619,13 +614,21 @@ export default function SportsbookHome() {
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="mt-10 pb-10 text-sm text-neutral-600 dark:text-neutral-400">
           <center>
             These model outputs are informational and not financial advice. Edges and odds are computed from model probabilities and optional bookmaker lines when provided.
             <br/>
             Data is for informational and educational purposes only and is not a solicitation to gamble. Use at your own risk.
           </center>
+        </footer>
+
+        {/* Footer */}
+        <footer className="mt-12 pb-10 text-sm text-neutral-600 dark:text-neutral-400 flex flex-wrap items-center gap-2">
+          <span>© {new Date().getFullYear()} UpperHand</span>
+          <span className="opacity-50">•</span>
+          <a href="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></a>
+          <span className="opacity-50">•</span>
+          <a href="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></a>
         </footer>
       </main>
     </div>
