@@ -23,11 +23,15 @@ available sportsbook odds.
 
    The pipeline writes predictions to `data/processed/games_today.csv` and, if
    the `SUPABASE_URL` and `SUPABASE_KEY` environment variables are set, also
-   publishes the results to a Supabase table for the frontend to consume.
+   publishes the results to a Supabase table for the frontend to consume. When
+   `SUPABASE_STORAGE_BUCKET` is set, required CSV inputs such as player IDs and
+   team schedules will be downloaded from that storage bucket instead of being
+   committed to the repository.
 
    ```bash
    export SUPABASE_URL="https://your-project.supabase.co"
    export SUPABASE_KEY="service_role_key"
+   export SUPABASE_STORAGE_BUCKET="mlb-data"
    python backend/mlb_pred_pipeline.py
    ```
 

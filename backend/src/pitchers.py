@@ -1,3 +1,4 @@
+import os
 import requests
 import requests_cache
 import json
@@ -11,11 +12,20 @@ from bs4 import BeautifulSoup, Comment
 from pybaseball import playerid_lookup, statcast_pitcher, pitching_stats
 
 from src.war import get_pitcher_war_on_date
+from src.supabase_client import ensure_local_file
 
 requests_cache.install_cache('bbref_cache', expire_after=86400)
 session = requests_cache.CachedSession()
 
-pid_df = pd.read_csv("data/playerid_list.csv")  
+PID_CSV = "data/playerid_list.csv"
+_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET")
+if _BUCKET:
+    try:
+        ensure_local_file(_BUCKET, "playerid_list.csv", PID_CSV)
+    except Exception as exc:
+        print(f"Warning: failed to download playerid_list.csv from Supabase: {exc}")
+
+pid_df = pd.read_csv(PID_CSV)
 
 def get_all_boxscores(year: int) -> pd.DataFrame:
     url = f"https://www.baseball-reference.com/leagues/majors/{year}-schedule.shtml"

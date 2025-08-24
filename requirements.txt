@@ -1,0 +1,12 @@
+pandas
+numpy
+requests
+requests-cache
+python-dotenv
+beautifulsoup4
+pybaseball
+lightgbm
+scikit-learn
+joblib
+supabase
+tqdm
