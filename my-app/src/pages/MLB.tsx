@@ -83,6 +83,18 @@ const fmtOdds = (o: number | undefined) => (o === undefined || Number.isNaN(o) ?
 const fmtMoney = (n: number | undefined) => (n === undefined || Number.isNaN(n) ? "—" : `$${n.toFixed(2)}`);
 const toLocalTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+// Color gradient from indigo-600 (low) to teal-700 (high)
+const EDGE_LOW_RGB = [79, 70, 229];   // indigo-600
+const EDGE_HIGH_RGB = [16, 148, 85]; // teal
+const edgeColor = (val: number | undefined, min: number, max: number) => {
+  if (val === undefined || max <= min) return `rgb(${EDGE_HIGH_RGB.join(',')})`;
+  const t = (val - min) / (max - min);
+  const r = Math.round(EDGE_LOW_RGB[0] + t * (EDGE_HIGH_RGB[0] - EDGE_LOW_RGB[0]));
+  const g = Math.round(EDGE_LOW_RGB[1] + t * (EDGE_HIGH_RGB[1] - EDGE_LOW_RGB[1]));
+  const b = Math.round(EDGE_LOW_RGB[2] + t * (EDGE_HIGH_RGB[2] - EDGE_LOW_RGB[2]));
+  return `rgb(${r}, ${g}, ${b})`;
+};
+
 // --- Constants ---
 const SPORTSBOOKS = ["BetUS", "BetMGM", "FanDuel", "DraftKings"] as const;
 
@@ -125,9 +137,9 @@ export default function SportsbookHome() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [probViewAmerican, setProbViewAmerican] = useState(false);
-  const [minEdge, setMinEdge] = useState(0.08); // probability difference
+  const [minEdge, setMinEdge] = useState(0.1); // probability difference
   const [sortKey, setSortKey] = useState<"start" | "edge" | "prob" | "book">("edge");
-  const [sortDir, setSortDir] = useState<1 | -1>(-1);
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [selectedBooks, setSelectedBooks] = useState<string[]>([...SPORTSBOOKS]);
 
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -270,6 +282,23 @@ export default function SportsbookHome() {
       return { ...g, recSide, recStake, recFrac } as Prediction & { recSide?: "HOME"|"AWAY"; recStake?: number; recFrac?: number };
     });
   }, [filtered, bankrollNum, maxBetNum, kellyMult]);
+
+  const edgeRange = useMemo(() => {
+    const edges: number[] = [];
+    withKelly.forEach((g) => {
+      const homeImp = impliedFromAmerican(g.home_book_odds);
+      const awayImp = impliedFromAmerican(g.away_book_odds);
+      const edgeH = g.edge_home ?? (homeImp !== undefined ? g.home_ml_prob - homeImp : undefined);
+      const edgeA = g.edge_away ?? (awayImp !== undefined ? g.away_ml_prob - awayImp : undefined);
+      const best = [edgeH, edgeA]
+        .filter((v): v is number => v !== undefined)
+        .sort((a, b) => b - a)[0];
+      if (best !== undefined) edges.push(best);
+    });
+    const min = edges.length ? Math.min(...edges) : 0;
+    const max = edges.length ? Math.max(...edges) : 0;
+    return { min, max };
+  }, [withKelly]);
 
   const sorted = useMemo(() => {
     const arr = [...withKelly];
@@ -475,7 +504,7 @@ export default function SportsbookHome() {
                 <></>
               </div>
               <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2 overflow-hidden">
-                <div className="bg-green-600 h-full" style={{ width: `${(history.correct / history.total) * 100}%` }}></div>
+                <div className="bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 h-full" style={{ width: `${(history.correct / history.total) * 100}%` }}></div>
               </div>
             </div>
           )}
@@ -552,6 +581,7 @@ export default function SportsbookHome() {
                       .filter((v): v is number => v !== undefined)
                       .sort((a, b) => b - a)[0];
                     const negativeEdge = bestEdgeVal !== undefined && bestEdgeVal < 0;
+                    const edgeTextColor = edgeColor(bestEdgeVal, edgeRange.min, edgeRange.max);
 
                     return (
                       <tr key={`${g.game_id}-${g.sportsbook}`} className="border-t border-neutral-200/60 dark:border-neutral-800/60">
@@ -565,7 +595,7 @@ export default function SportsbookHome() {
                           <div className="flex flex-col gap-1">
                             <div className="text-xs uppercase tracking-wide text-neutral-500">Favored</div>
                             <div className="flex items-center gap-2">
-                              <Badge className="bg-green-600">{favTeam}</Badge>
+                              <Badge className="bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 text-white">{favTeam}</Badge>
                               <span className="text-sm">
                                 {probViewAmerican ? fmtOdds(favOdds) : fmtPct(favProb)}
                               </span>
@@ -587,7 +617,9 @@ export default function SportsbookHome() {
                           </div>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <div className={`text-sm font-semibold ${bestEdgeVal !== undefined ? 'text-green-600' : ''}`}>{bestEdgeVal !== undefined ? `${(bestEdgeVal * 100).toFixed(1)} pp` : "—"}</div>
+                          <div className="text-sm font-semibold" style={edgeTextColor ? { color: edgeTextColor } : undefined}>
+                            {bestEdgeVal !== undefined ? `${(bestEdgeVal * 100).toFixed(1)} pp` : "—"}
+                          </div>
                           <div className="text-xs text-neutral-500">vs book implied</div>
                         </td>
                         <td className="px-4 py-3 align-top text-sm">

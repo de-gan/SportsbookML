@@ -6,7 +6,6 @@ import {
   Brain,
   BarChart3,
   Sparkles,
-  Rocket,
   LineChart,
   Wallet,
   Info,
