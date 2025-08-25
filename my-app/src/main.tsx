@@ -6,6 +6,7 @@ import HomeLanding from './pages/LandingPage.tsx'
 import Methodology from './pages/Methodology.tsx'
 import About from './pages/About.tsx'
 import Login from './pages/Login.tsx'
+import Signup from './pages/Signup.tsx'
 import { AuthProvider } from './lib/auth'
 
 const storedTheme = localStorage.getItem('theme')
@@ -26,6 +27,8 @@ const App = () => {
       return <About />
     case '/login':
       return <Login />;
+    case '/signup':
+      return <Signup />;
     default:
       return <HomeLanding />;
   }

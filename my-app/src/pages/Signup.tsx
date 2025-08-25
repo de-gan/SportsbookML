@@ -4,19 +4,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export default function Login() {
+export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const signIn = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signUp({ email, password });
     if (error) {
       setError(error.message);
     } else {
-      window.location.href = "/mlb";
+      setMessage("Check your email for a confirmation link.");
     }
   };
 
@@ -24,7 +25,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardContent className="p-6">
-          <form className="space-y-4" onSubmit={signIn}>
+          <form className="space-y-4" onSubmit={handleSignUp}>
             <Input
               type="email"
               placeholder="Email"
@@ -40,11 +41,12 @@ export default function Login() {
               required
             />
             {error && <div className="text-sm text-red-500">{error}</div>}
+            {message && <div className="text-sm text-green-600">{message}</div>}
             <Button type="submit" className="w-full">
-              Sign In
+              Sign Up
             </Button>
             <Button asChild variant="secondary" className="w-full">
-              <a href="/signup">Create Account</a>
+              <a href="/login">Back to Login</a>
             </Button>
           </form>
         </CardContent>
@@ -52,4 +54,3 @@ export default function Login() {
     </div>
   );
 }
-
