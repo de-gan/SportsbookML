@@ -10,6 +10,8 @@ import { Switch } from "../components/ui/switch";
 import { Badge } from "../components/ui/badge";
 import { supabase } from "../lib/supabase";
 import ThemeToggle from "../components/ThemeToggle";
+import AuthButton from "../components/AuthButton";
+import { useAuth } from "../lib/auth";
 
 // --- Types ---
 interface Prediction {
@@ -134,6 +136,8 @@ function runInternalTests() {
 
 // --- Component ---
 export default function SportsbookHome() {
+  const { user, loading: authLoading } = useAuth();
+
   const [data, setData] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -379,6 +383,12 @@ export default function SportsbookHome() {
     URL.revokeObjectURL(url);
   };
 
+  useEffect(() => {
+    if (!authLoading && !user) {
+      window.location.href = "/login";
+    }
+  }, [authLoading, user]);
+
   const Header = () => (
     <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center gap-3">
@@ -397,12 +407,13 @@ export default function SportsbookHome() {
             <Button variant="ghost" className="gap-2" disabled><BiBasketball className="w-4 h-4"/> NBA <span className="opacity-60">(soon)</span></Button>
             <Button variant="ghost" className="gap-2" disabled><PiFootball className="w-4 h-4"/> NFL <span className="opacity-60">(soon)</span></Button>
             <Button asChild variant="ghost" className="gap-2"><a href="/about"><Info className="w-4 h-4"/> About</a></Button>
+            <AuthButton />
           </nav>
         </div>
       </header>
   );
 
-  return (
+  return user ? (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-emerald-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 text-neutral-900 dark:text-neutral-100">
       <Header />
 
@@ -671,5 +682,5 @@ export default function SportsbookHome() {
         </footer>
       </main>
     </div>
-  );
+  ) : null;
 }

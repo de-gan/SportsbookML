@@ -1,9 +1,6 @@
 # Data Files
 data/
 
-# Logs
-logs/
-
 #node dependencies
 node_modules/
 
