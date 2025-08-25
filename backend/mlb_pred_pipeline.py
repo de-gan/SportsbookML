@@ -35,18 +35,18 @@ def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, 
     bets_to_place = bets_to_place.sort_values("Edge", ascending=False).reset_index(drop=True)
     print(bets_to_place.to_string(index=False))
 
-    local_csv = "data/games_today.csv"
-    merged.to_csv(local_csv, index=False)
+    path = "data/games_today.csv"
+    merged.to_csv(path, index=False)
     
     try:
-        upload_file_to_bucket(local_csv)
+        upload_file_to_bucket(path)
     except Exception as exc:
-        print(f"Failed to upload history CSV to Supabase storage: {exc}")
+        print(f"Failed to upload games_today CSV to Supabase storage: {exc}")
 
     try:
         upsert_predictions(merged)
     except Exception as exc:
-        print(f"Failed to upload predictions to Supabase table: {exc}")
+        print(f"Failed to upload today's predictions (games_today) to Supabase table: {exc}")
 
 def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, min_edge: float = 0.05, max_bet_frac: float = 0.02):
     # Retrieve up-to-date raw game data
@@ -54,6 +54,7 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
 
     # Update processed data
     update_season_data()
+    
     path = "data/pred_history.csv"
     bucket = os.getenv("SUPABASE_BUCKET")
     if bucket:
@@ -61,17 +62,20 @@ def full_updated_odds(date: str, bankroll: float = 100.0, kelly: float = 0.50, m
             ensure_local_file(bucket, "pred_history.csv", path)
         except Exception as exc:
             print(f"Warning: failed to download prediction history from Supabase: {exc}")
+    
+    predict_and_odds(date, bankroll, kelly, min_edge, max_bet_frac)
+    
     df = pd.read_csv(path)
     df = df.replace([np.inf, -np.inf], None).where(pd.notnull(df), None)
     df = df.astype(object).where(pd.notnull(df), None)
-    upsert_predictions(df, table="history")
-
-    # Create LightGBM models
-    #create_models()
-    
-    predict_and_odds(date, bankroll, kelly, min_edge, max_bet_frac)    
+    try:
+        upsert_predictions(df, table="history")
+    except Exception as exc:
+        print(f"Failed to upload prediction history to Supabase table: {exc}")
 
 if __name__ == '__main__':
+    # Create LightGBM models
+    #create_models()
     d = date.today().strftime("%Y-%m-%d")
     full_updated_odds(d)
     
