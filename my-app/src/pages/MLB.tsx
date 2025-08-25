@@ -544,7 +544,8 @@ export default function SportsbookHome() {
                     <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('prob')}>
                       Model Prediction {sortKey === 'prob' ? (sortDir === 1 ? '▲' : '▼') : '–'}
                     </th>
-                    <th className="px-4 py-3">Book Odds</th>
+                    <th className="px-4 py-3">Home Odds</th>
+                    <th className="px-4 py-3">Away Odds</th>
                     <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('edge')}>
                       Edge {sortKey === 'edge' ? (sortDir === 1 ? '▲' : '▼') : '–'}
                     </th>
@@ -554,12 +555,12 @@ export default function SportsbookHome() {
                 <tbody>
                   {loading && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-neutral-500">Loading predictions…</td>
+                      <td colSpan={8} className="px-4 py-10 text-center text-neutral-500">Loading predictions…</td>
                     </tr>
                   )}
                   {!loading && error && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8">
+                      <td colSpan={8} className="px-4 py-8">
                         <div className="flex items-center justify-center gap-2 text-neutral-600 dark:text-neutral-300">
                           <CloudOff className="w-4 h-4"/>
                           <span>{error} Try refresh. If this persists, verify your Flask endpoint at <code className="px-1 rounded bg-neutral-100 dark:bg-neutral-800">/api/mlb/predictions?date=today</code>.</span>
@@ -570,7 +571,7 @@ export default function SportsbookHome() {
 
                   {!loading && !error && sorted.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-neutral-500">No games match your filters.</td>
+                      <td colSpan={8} className="px-4 py-10 text-center text-neutral-500">No games match your filters.</td>
                     </tr>
                   )}
 
@@ -612,19 +613,15 @@ export default function SportsbookHome() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <div className="text-xs text-neutral-500">{g.home_team}</div>
-                              <div className="font-mono">{fmtOdds(g.home_book_odds)}</div>
-                              <div className="text-xs text-neutral-500">Imp {fmtPct(homeImp)}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-neutral-500">{g.away_team}</div>
-                              <div className="font-mono">{fmtOdds(g.away_book_odds)}</div>
-                              <div className="text-xs text-neutral-500">Imp {fmtPct(awayImp)}</div>
-                            </div>
-                          </div>
+                        <td className="px-4 py-3 align-top text-sm">
+                          <div className="text-xs text-neutral-500">{g.home_team}</div>
+                          <div className="font-mono">{fmtOdds(g.home_book_odds)}</div>
+                          <div className="text-xs text-neutral-500">Imp {fmtPct(homeImp)}</div>
+                        </td>
+                        <td className="px-4 py-3 align-top text-sm">
+                          <div className="text-xs text-neutral-500">{g.away_team}</div>
+                          <div className="font-mono">{fmtOdds(g.away_book_odds)}</div>
+                          <div className="text-xs text-neutral-500">Imp {fmtPct(awayImp)}</div>
                         </td>
                         <td className="px-4 py-3 align-top">
                           <div className="text-sm font-semibold" style={edgeTextColor ? { color: edgeTextColor } : undefined}>
