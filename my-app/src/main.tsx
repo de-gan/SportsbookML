@@ -6,10 +6,12 @@ import HomeLanding from './pages/LandingPage.tsx'
 import Methodology from './pages/Methodology.tsx'
 import About from './pages/About.tsx'
 
-if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-  document.documentElement.classList.add('dark');
+const storedTheme = localStorage.getItem('theme')
+
+if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  document.documentElement.classList.add('dark')
 } else {
-  document.documentElement.classList.remove('dark');
+  document.documentElement.classList.remove('dark')
 }
 
 const App = () => {

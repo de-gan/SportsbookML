@@ -9,6 +9,7 @@ import { Slider } from "../components/ui/slider";
 import { Switch } from "../components/ui/switch";
 import { Badge } from "../components/ui/badge";
 import { supabase } from "../lib/supabase";
+import ThemeToggle from "../components/ThemeToggle";
 
 // --- Types ---
 interface Prediction {
@@ -380,7 +381,7 @@ export default function SportsbookHome() {
 
   const Header = () => (
     <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="p-2 rounded-2xl bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 text-white shadow-md">
               <HandCoins className="w-5 h-5" />
@@ -388,7 +389,9 @@ export default function SportsbookHome() {
             <span className="text-xl font-semibold tracking-tight">UpperHand</span>
             <Badge variant="secondary" className="ml-1 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700">Beta</Badge>
           </div>
-          <nav className="ml-auto flex items-center gap-1">
+          <span className="ml-6 opacity-60">Dark Mode</span>
+          <ThemeToggle />
+          <nav className="flex flex-wrap items-center gap-1 w-full justify-center sm:w-auto sm:justify-end sm:ml-auto">
             <Button asChild variant="ghost" className="gap-2"><a href="/"><Trophy className="w-4 h-4"/> Home</a></Button>
             <Button asChild variant="ghost" className="gap-2 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700"><a href="/mlb"><BiBaseball className="w-4 h-4"/> MLB</a></Button>
             <Button variant="ghost" className="gap-2" disabled><BiBasketball className="w-4 h-4"/> NBA <span className="opacity-60">(soon)</span></Button>
@@ -507,7 +510,7 @@ export default function SportsbookHome() {
         {history && history.total > 0 && (
             <div className="mb-4">
               <div className="text-sm mb-1 font-medium">
-                All-time Model Prediction Record: {history.correct}/{history.total} ({((history.correct / history.total) * 100).toFixed(1)}%)
+                Current Model Prediction Record: {history.correct}/{history.total} ({((history.correct / history.total) * 100).toFixed(1)}%)
                 <></>
               </div>
               <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2 overflow-hidden">
@@ -528,7 +531,7 @@ export default function SportsbookHome() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="min-w-full text-xs sm:text-sm">
                 <thead className="bg-neutral-100/60 dark:bg-neutral-800/60">
                   <tr className="text-left">
                     <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('start')}>
