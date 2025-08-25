@@ -46,6 +46,9 @@ export default function Login() {
             <Button asChild variant="secondary" className="w-full">
               <a href="/signup">Create Account</a>
             </Button>
+            <Button asChild variant="ghost" className="w-full">
+              <a href="/">Back to Home</a>
+            </Button>
           </form>
         </CardContent>
       </Card>
