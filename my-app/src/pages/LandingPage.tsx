@@ -19,6 +19,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import ThemeToggle from "../components/ThemeToggle";
+import AuthButton from "../components/AuthButton";
 
 // --- small helpers for the demo calculator ---
 const impliedFromAmerican = (odds?: number) => {
@@ -82,6 +83,7 @@ export default function HomeLanding() {
             <Button variant="ghost" className="gap-2" disabled><BiBasketball className="w-4 h-4"/> NBA <span className="opacity-60">(soon)</span></Button>
             <Button variant="ghost" className="gap-2" disabled><PiFootball className="w-4 h-4"/> NFL <span className="opacity-60">(soon)</span></Button>
             <Button asChild variant="ghost" className="gap-2"><a href="/about"><Info className="w-4 h-4"/> About</a></Button>
+            <AuthButton />
           </nav>
         </div>
       </header>
