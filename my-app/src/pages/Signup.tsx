@@ -10,7 +10,23 @@ export default function Signup() {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const localUrl = import.meta.env.VITE_SITE_URL as string
 
+  const redirectUrl = `${
+    localUrl || window.location.origin
+  }`;
+
+  const signUpWithGoogle = async () => {
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: redirectUrl },
+    });
+    if (error) {
+      setError(error.message);
+    }
+  };
+  
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -59,6 +75,14 @@ export default function Signup() {
             {message && <div className="text-sm text-green-600">{message}</div>}
             <Button type="submit" className="w-full">
               Sign Up
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={signUpWithGoogle}
+            >
+              Sign up with Google
             </Button>
             <Button asChild variant="secondary" className="w-full">
               <a href="/login">Back to Login</a>
