@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Analytics } from "@vercel/analytics/react"
 import './index.css'
 import SportsbookHome from './pages/MLB.tsx'
 import HomeLanding from './pages/LandingPage.tsx'
@@ -32,5 +33,6 @@ export default App;
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
+    <Analytics />
   </StrictMode>,
 )

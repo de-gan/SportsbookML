@@ -4,7 +4,7 @@ requests
 requests-cache
 python-dotenv
 beautifulsoup4
-pybaseball
+pybaseball=2.2.7
 lightgbm
 scikit-learn
 joblib
