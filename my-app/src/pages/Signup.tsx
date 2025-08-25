@@ -7,13 +7,22 @@ import { Button } from "@/components/ui/button";
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: displayName,
+        },
+      },
+    });
     if (error) {
       setError(error.message);
     } else {
@@ -26,6 +35,12 @@ export default function Signup() {
       <Card className="w-full max-w-md">
         <CardContent className="p-6">
           <form className="space-y-4" onSubmit={handleSignUp}>
+            <Input
+              type="text"
+              placeholder="Display Name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
             <Input
               type="email"
               placeholder="Email"
@@ -47,6 +62,9 @@ export default function Signup() {
             </Button>
             <Button asChild variant="secondary" className="w-full">
               <a href="/login">Back to Login</a>
+            </Button>
+            <Button asChild variant="ghost" className="w-full">
+              <a href="/">Back to Home</a>
             </Button>
           </form>
         </CardContent>

@@ -11,10 +11,19 @@ export default function AuthButton() {
   };
 
   if (user) {
+    const displayName =
+      (user.user_metadata as { display_name?: string })?.display_name ||
+      user.email;
+
     return (
-      <Button variant="ghost" onClick={handleSignOut} className="gap-2">
-        Logout
-      </Button>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">
+          {displayName}
+        </span>
+        <Button variant="ghost" onClick={handleSignOut} className="gap-2">
+          Logout
+        </Button>
+      </div>
     );
   }
 
