@@ -388,7 +388,7 @@ export default function SportsbookHome() {
 
   return user ? (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-emerald-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 text-neutral-900 dark:text-neutral-100">
-      <NavBar active="mlb" />
+      <NavBar active="mlb" user={!!user} />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Hero */}

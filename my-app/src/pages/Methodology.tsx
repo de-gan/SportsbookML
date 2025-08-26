@@ -1,12 +1,14 @@
 import { Card, CardContent } from "../components/ui/card";
 import { ExternalLink } from "lucide-react";
 import NavBar from "../components/NavBar";
+import { useAuth } from "../lib/auth";
 
 export default function Methodology() {
+  const { user } = useAuth();
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-emerald-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 text-neutral-900 dark:text-neutral-100">
       {/* Top nav */}
-      <NavBar showAuthButton={false} />
+      <NavBar showAuthButton={false} user={!!user} />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Model Methodology</h1>
