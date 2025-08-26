@@ -9,6 +9,7 @@ import About from './pages/About.tsx'
 import Login from './pages/Login.tsx'
 import Signup from './pages/Register.tsx'
 import Settings from './pages/Settings.tsx'
+import Background from './pages/Background.tsx'
 import { AuthProvider } from './lib/auth'
 
 const storedTheme = localStorage.getItem('theme')
@@ -29,6 +30,7 @@ const App = () => (
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/settings" element={<Settings />} />
+      <Route path="/background" element={<Background />} />
     </Routes>
   </BrowserRouter>
 );

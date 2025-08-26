@@ -8,6 +8,8 @@
     { "source": "/about", "destination": "/index.html" },
     { "source": "/methodology", "destination": "/index.html" },
     { "source": "/login", "destination": "/index.html" },
-    { "source": "/signup", "destination": "/index.html" }
+    { "source": "/signup", "destination": "/index.html" },
+    { "source": "/settings", "destination": "/index.html" },
+    { "source": "/background", "destination": "/index.html" }
   ]
 }
