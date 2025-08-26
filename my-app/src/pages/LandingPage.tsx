@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
+import { useAuth } from "../lib/auth";
 import { motion } from "framer-motion";
 import {
-  HandCoins,
-  Trophy,
   Brain,
   BarChart3,
   Sparkles,
@@ -11,15 +10,15 @@ import {
   Info,
   ExternalLink,
   BadgeDollarSign,
+  CircleStar,
 } from "lucide-react";
-import { BiBaseball, BiBasketball } from "react-icons/bi";
-import { PiFootball } from "react-icons/pi";
+import { BiBaseball } from "react-icons/bi";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
-import ThemeToggle from "../components/ThemeToggle";
-import AuthButton from "../components/AuthButton";
+import NavBar from "../components/NavBar";
+import MachineLearningBackground from "@/components/Background";
 
 // --- small helpers for the demo calculator ---
 const impliedFromAmerican = (odds?: number) => {
@@ -42,6 +41,8 @@ const kellyFraction = (p: number | undefined, odds?: number) => {
 const fmtMoney = (n: number | undefined) => (n === undefined || Number.isNaN(n) ? "—" : `$${n.toFixed(2)}`);
 
 export default function HomeLanding() {
+  const { user } = useAuth();
+
   // Demo Kelly widget state
   const [bankroll, setBankroll] = useState<string>("1000");
   const [prob, setProb] = useState<string>("0.60"); // 0..1
@@ -64,29 +65,10 @@ export default function HomeLanding() {
   }, [bankroll, mult, kelly]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-emerald-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-screen text-neutral-900 dark:text-neutral-100">
+      <MachineLearningBackground density={0.0001} speed={0.5} interactive opacity={0.2} />
       {/* Top nav */}
-      <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-neutral-900/70 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center gap-3">
-          <motion.div initial={{opacity:0, y:-8}} animate={{opacity:1, y:0}} transition={{duration:0.35}} className="flex items-center gap-2">
-            <span className="p-2 rounded-2xl bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 text-white shadow-md">
-              <HandCoins className="w-5 h-5" />
-            </span>
-            <span className="text-xl font-semibold tracking-tight">UpperHand</span>
-            <Badge variant="secondary" className="ml-1 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700">Beta</Badge>
-          </motion.div>
-          <span className="ml-6 opacity-60">Dark Mode</span>
-          <ThemeToggle />
-          <nav className="flex flex-wrap items-center gap-1 w-full justify-center sm:w-auto sm:justify-end sm:ml-auto">
-            <Button asChild variant="ghost" className="gap-2 bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700"><a href="/"><Trophy className="w-4 h-4"/> Home</a></Button>
-            <Button asChild variant="ghost" className="gap-2"><a href="/mlb"><BiBaseball className="w-4 h-4"/> MLB</a></Button>
-            <Button variant="ghost" className="gap-2" disabled><BiBasketball className="w-4 h-4"/> NBA <span className="opacity-60">(soon)</span></Button>
-            <Button variant="ghost" className="gap-2" disabled><PiFootball className="w-4 h-4"/> NFL <span className="opacity-60">(soon)</span></Button>
-            <Button asChild variant="ghost" className="gap-2"><a href="/about"><Info className="w-4 h-4"/> About</a></Button>
-            <AuthButton />
-          </nav>
-        </div>
-      </header>
+      <NavBar active="home" />
 
       <main className="max-w-7xl mx-auto px-4 py-10">
         {/* Hero */}
@@ -100,7 +82,13 @@ export default function HomeLanding() {
               <span className="font-semibold"> MLB moneylines</span>—and see recommended bet sizes using Kelly staking.
             </p>
             <div className="flex flex-wrap gap-3 mt-5">
-              <Button asChild size="lg" className="gap-2"><a href="/mlb"><BiBaseball className="w-4 h-4"/> Explore Today’s MLB Picks</a></Button>
+              <Button asChild size="lg" className="gap-2">
+                {user ? (
+                  <a href="/mlb"><BiBaseball className="w-4 h-4"/> Explore Today’s MLB Picks</a>
+                ) : (
+                  <a href="/signup"><CircleStar className="w-4 h-4"/>Register Now!</a>
+                )}
+              </Button>
               <Button asChild variant="secondary" size="lg" className="gap-2"><a href="/methodology"><Brain className="w-4 h-4"/> Methodology</a></Button>
             </div>
             <div className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">Realtime slate, sortable edges, CSV export, and more.</div>
@@ -197,7 +185,11 @@ export default function HomeLanding() {
                 <h3 className="font-semibold text-white mb-2">Jump in</h3>
                 <p className="text-sm/relaxed text-white/90 mb-4">See today’s projections and recommended stakes right now.</p>
                 <Button asChild size="lg" variant="secondary" className="w-full bg-white/15 hover:bg-white/25 text-white border-white/30">
+                  {user ? (
                   <a href="/mlb"><BiBaseball className="w-4 h-4"/> Go to MLB Predictions</a>
+                ) : (
+                  <a href="/login"><BiBaseball className="w-4 h-4"/> Go to MLB Predictions</a>
+                )}
                 </Button>
                 <div className="text-xs text-white/80 mt-3 flex items-center gap-1">
                   <Info className="w-3.5 h-3.5"/> Not financial advice. For informational use only.

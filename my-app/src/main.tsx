@@ -6,7 +6,7 @@ import HomeLanding from './pages/LandingPage.tsx'
 import Methodology from './pages/Methodology.tsx'
 import About from './pages/About.tsx'
 import Login from './pages/Login.tsx'
-import Signup from './pages/Signup.tsx'
+import Signup from './pages/Register.tsx'
 import { AuthProvider } from './lib/auth'
 
 const storedTheme = localStorage.getItem('theme')

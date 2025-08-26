@@ -17,7 +17,7 @@ export default function Signup() {
     localUrl || window.location.origin
   }`;
 
-  const signUpWithGoogle = async () => {
+  const registerWithGoogle = async () => {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -75,13 +75,12 @@ export default function Signup() {
             {error && <div className="text-sm text-red-500">{error}</div>}
             {message && <div className="text-sm text-green-600">{message}</div>}
             <Button type="submit" className="w-full">
-              Sign Up
+              Register
             </Button>
             <Button
               type="button"
-              variant="outline"
               className="w-full"
-              onClick={signUpWithGoogle}
+              onClick={registerWithGoogle}
             >
               <img
                 src={GoogleIcon}
@@ -91,7 +90,7 @@ export default function Signup() {
               Sign up with Google
             </Button>
             <Button asChild variant="secondary" className="w-full">
-              <a href="/login">Back to Login</a>
+              <a href="/login">Already have an account?</a>
             </Button>
             <Button asChild variant="ghost" className="w-full">
               <a href="/">Back to Home</a>

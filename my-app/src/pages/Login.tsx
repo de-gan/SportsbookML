@@ -62,7 +62,7 @@ export default function Login() {
             </Button>
             <Button
               type="button"
-              className="w-full bg-white"
+              className="w-full"
               onClick={signInWithGoogle}
             >
               <img

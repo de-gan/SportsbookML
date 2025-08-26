@@ -67,7 +67,7 @@ export default function AuthButton() {
 
   return (
     <Button asChild variant="ghost" className="gap-2">
-      <a href="/login">Login</a>
+      <a href="/login">Login/Register</a>
     </Button>
   );
 }
