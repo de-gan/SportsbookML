@@ -1,6 +1,7 @@
 require("dotenv").config();
 const http = require('http');
 const { createClient } = require('@supabase/supabase-js');
+const deleteAccountHandler = require('./api/delete-account');
 
 const PORT = process.env.PORT || 3001;
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -109,6 +110,8 @@ const server = http.createServer(async (req, res) => {
     await handlePredictions(req, res);
   } else if (req.method === 'GET' && req.url && req.url.startsWith('/api/mlb/history')) {
     await handleHistory(req, res);
+  } else if (req.method === 'DELETE' && req.url && req.url.startsWith('/api/delete-account')) {
+    await deleteAccountHandler(req, res);
   } else {
     res.statusCode = 404;
     res.end('Not found');

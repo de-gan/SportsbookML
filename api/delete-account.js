@@ -5,32 +5,33 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-module.exports = async function handler(req, res) {
+/**
+ * Vercel serverless function to delete the authenticated user's account.
+ */
+module.exports = async (req, res) => {
   if (req.method !== 'DELETE') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    res.setHeader('Allow', 'DELETE');
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.replace('Bearer', '').trim();
+  const token = authHeader.split(' ')[1];
   if (!token) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {
     const { data, error: userError } = await supabase.auth.getUser(token);
     if (userError || !data?.user) {
-      res.status(401).json({ error: 'Invalid token' });
-      return;
+      return res.status(401).json({ error: 'Invalid token' });
     }
 
     const { error: deleteError } = await supabase.auth.admin.deleteUser(data.user.id);
     if (deleteError) throw deleteError;
 
-    res.status(200).json({ success: true });
+    return res.status(200).json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to delete account.' });
+    return res.status(500).json({ error: 'Failed to delete account.' });
   }
 };
