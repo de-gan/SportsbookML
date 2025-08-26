@@ -1,36 +1,54 @@
-const { createClient } = require('@supabase/supabase-js');
+const SUPABASE_URL =
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY =
+  process.env.SUPABASE_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY;
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+/**
+ * Vercel serverless function to delete the authenticated user's account.
+ */
+module.exports = async (req, res) => {
+  const send = (status, payload) => {
+    res.statusCode = status;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(payload));
+  };
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-module.exports = async function handler(req, res) {
   if (req.method !== 'DELETE') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    res.setHeader('Allow', 'DELETE');
+    return send(405, { error: 'Method not allowed' });
   }
 
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.replace('Bearer', '').trim();
+  const token = authHeader.split(' ')[1];
   if (!token) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
+    return send(401, { error: 'Unauthorized' });
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.error('Missing Supabase configuration');
+    return send(500, { error: 'Server misconfiguration' });
   }
 
   try {
-    const { data, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !data?.user) {
-      res.status(401).json({ error: 'Invalid token' });
-      return;
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: SUPABASE_KEY,
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      const message =
+        body.error_description || body.error || 'Failed to delete account.';
+      return send(response.status, { error: message });
     }
 
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(data.user.id);
-    if (deleteError) throw deleteError;
-
-    res.status(200).json({ success: true });
+    return send(200, { success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to delete account.' });
+    return send(500, { error: 'Failed to delete account.' });
   }
 };
