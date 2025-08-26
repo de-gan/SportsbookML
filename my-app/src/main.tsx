@@ -5,6 +5,9 @@ import SportsbookHome from './pages/MLB.tsx'
 import HomeLanding from './pages/LandingPage.tsx'
 import Methodology from './pages/Methodology.tsx'
 import About from './pages/About.tsx'
+import Login from './pages/Login.tsx'
+import Signup from './pages/Register.tsx'
+import { AuthProvider } from './lib/auth'
 
 const storedTheme = localStorage.getItem('theme')
 
@@ -22,6 +25,10 @@ const App = () => {
       return <Methodology />;
     case '/about':
       return <About />
+    case '/login':
+      return <Login />;
+    case '/signup':
+      return <Signup />;
     default:
       return <HomeLanding />;
   }
@@ -31,6 +38,8 @@ export default App;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>,
 )

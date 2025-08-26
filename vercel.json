@@ -6,6 +6,8 @@
   "rewrites": [
     { "source": "/mlb", "destination": "/index.html" },
     { "source": "/about", "destination": "/index.html" },
-    { "source": "/methodology", "destination": "/index.html" }
+    { "source": "/methodology", "destination": "/index.html" },
+    { "source": "/login", "destination": "/index.html" },
+    { "source": "/signup", "destination": "/index.html" }
   ]
 }
