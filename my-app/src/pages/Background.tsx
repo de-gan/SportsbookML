@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "../lib/auth";
 import MachineLearningBackground from "@/components/Background";
 
 export default function About() {
-  const { user } = useAuth();
   const [isDark, setIsDark] = useState(
     () => document.documentElement.classList.contains("dark")
   );
