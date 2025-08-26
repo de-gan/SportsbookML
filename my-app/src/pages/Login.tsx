@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import GoogleIcon from "@/assets/Google.svg"
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -61,10 +62,14 @@ export default function Login() {
             </Button>
             <Button
               type="button"
-              variant="outline"
-              className="w-full"
+              className="w-full bg-white"
               onClick={signInWithGoogle}
             >
+              <img
+                src={GoogleIcon}
+                alt="Google logo"
+                className="h-4 w-4"
+              />
               Sign in with Google
             </Button>
             <Button asChild variant="secondary" className="w-full">

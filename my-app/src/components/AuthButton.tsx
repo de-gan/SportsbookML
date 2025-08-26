@@ -24,9 +24,13 @@ export default function AuthButton() {
   };
 
   if (user) {
+    const metadata = user.user_metadata as {
+      display_name?: string;
+      full_name?: string;
+      name?: string;
+    };
     const displayName =
-      (user.user_metadata as { display_name?: string })?.display_name ||
-      user.email;
+      metadata.display_name || metadata.full_name || metadata.name || user.email;
 
     return (
       <div className="relative" ref={menuRef}>
