@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { HandCoins, Trophy, Info } from "lucide-react";
 import { BiBaseball, BiBasketball } from "react-icons/bi";
 import { PiFootball } from "react-icons/pi";
+import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import ThemeToggle from "./ThemeToggle";
@@ -38,18 +39,19 @@ export default function NavBar({ active, showAuthButton = true, user = false }: 
             variant="ghost"
             className={`gap-2 ${active === "home" ? activeClass : ""}`}
           >
-            <a href="/">
+            <Link to="/">
               <Trophy className="w-4 h-4" /> Home
-            </a>
+            </Link>
           </Button>
           <Button
             asChild
             variant="ghost"
             className={`gap-2 ${active === "mlb" ? activeClass : ""}`}
           >
+
             <a href={user ? "/mlb" : "/login"}>
               <BiBaseball className="w-4 h-4" /> MLB
-            </a>
+            </Link>
           </Button>
           <Button variant="ghost" className="gap-2" disabled>
             <BiBasketball className="w-4 h-4" /> NBA <span className="opacity-60">(soon)</span>
@@ -62,9 +64,9 @@ export default function NavBar({ active, showAuthButton = true, user = false }: 
             variant="ghost"
             className={`gap-2 ${active === "about" ? activeClass : ""}`}
           >
-            <a href="/about">
+            <Link to="/about">
               <Info className="w-4 h-4" /> About
-            </a>
+            </Link>
           </Button>
           {showAuthButton && <AuthButton />}
         </nav>

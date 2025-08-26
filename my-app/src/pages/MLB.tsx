@@ -9,6 +9,7 @@ import { Badge } from "../components/ui/badge";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import NavBar from "../components/NavBar";
+import { Link, useNavigate } from "react-router-dom";
 
 // --- Types ---
 interface Prediction {
@@ -380,11 +381,12 @@ export default function SportsbookHome() {
     URL.revokeObjectURL(url);
   };
 
+  const navigate = useNavigate();
   useEffect(() => {
     if (!authLoading && !user) {
-      window.location.href = "/login";
+      navigate("/login");
     }
-  }, [authLoading, user]);
+  }, [authLoading, user, navigate]);
 
   return user ? (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-emerald-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 text-neutral-900 dark:text-neutral-100">
@@ -414,9 +416,9 @@ export default function SportsbookHome() {
             <div className="flex flex-wrap gap-3 mt-4">
               <Button onClick={downloadCsv} className="gap-2"><Download className="w-4 h-4"/> Export CSV</Button>
               <Button variant="secondary" onClick={() => window.location.reload()} className="gap-2"><RefreshCcw className="w-4 h-4"/> Refresh</Button>
-              <a href="/methodology" className="inline-flex items-center gap-2 text-indigo-600 hover:underline">
+              <Link to="/methodology" className="inline-flex items-center gap-2 text-indigo-600 hover:underline">
                 Methodology <ExternalLink className="w-4 h-4"/>
-              </a>
+              </Link>
             </div>
             {lastUpdated && (
               <p className="text-sm mt-2 text-neutral-600 dark:text-neutral-400">Updates every morning. Last updated: {new Date(lastUpdated).toLocaleString()}</p>
@@ -649,9 +651,9 @@ export default function SportsbookHome() {
         <footer className="mt-12 pb-10 text-sm text-neutral-600 dark:text-neutral-400 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} UpperHand</span>
           <span className="opacity-50">•</span>
-          <a href="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></a>
+          <Link to="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></Link>
           <span className="opacity-50">•</span>
-          <a href="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></a>
+          <Link to="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></Link>
         </footer>
       </main>
     </div>

@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import GoogleIcon from "@/assets/Google.svg"
 
 export default function Signup() {
@@ -90,10 +91,10 @@ export default function Signup() {
               Sign up with Google
             </Button>
             <Button asChild variant="secondary" className="w-full">
-              <a href="/login">Already have an account?</a>
+              <Link to="/login">Already have an account?</Link>
             </Button>
             <Button asChild variant="ghost" className="w-full">
-              <a href="/">Back to Home</a>
+              <Link to="/">Back to Home</Link>
             </Button>
           </form>
         </CardContent>
