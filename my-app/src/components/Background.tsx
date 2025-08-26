@@ -9,9 +9,6 @@ import { useEffect, useRef, useState } from "react";
  * - Soft procedural gradient glow for depth
  * - Optional mouse gravity for interactivity
  *
- * Drop <MachineLearningBackground /> as the first child of your layout/root page.
- * It is position:fixed and sits behind content (z-index -10).
- *
  * Props:
  *  - density       : number   (default 0.00008)  // nodes per pixel (scaled by viewport area)
  *  - speed         : number   (default 1)        // global motion multiplier [0.5..2]
@@ -30,6 +27,7 @@ export default function MachineLearningBackground({
   interactive = true,
   opacity = 0.5,
   maxConnections = 3,
+  nodeColor = "#e0f2fe",
 }: {
   density?: number;
   speed?: number; // 0.5..2
@@ -37,6 +35,7 @@ export default function MachineLearningBackground({
   interactive?: boolean;
   opacity?: number;
   maxConnections?: number;
+  nodeColor?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [dpr, setDpr] = useState<number>(typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 1);
@@ -82,7 +81,7 @@ export default function MachineLearningBackground({
       y: Math.random() * H,
       vx: rand(-0.3, 0.3) * speed * dpr,
       vy: rand(-0.3, 0.3) * speed * dpr,
-      r: rand(0.8, 1.8) * dpr,
+      r: rand(1, 2.4) * dpr,
       t: Math.random() * Math.PI * 2,
       links: [],
     }));
@@ -97,7 +96,7 @@ export default function MachineLearningBackground({
     let raf = 0;
     let last = performance.now();
 
-    const attractStrength = 0.05 * dpr * speed; // mouse gravity
+    const attractStrength = 0.02 * dpr * speed; // mouse gravity
 
     function step(now: number) {
       const dt = Math.min(33, now - last) / 16.67; // normalize to ~60fps
@@ -209,7 +208,7 @@ export default function MachineLearningBackground({
       // Draw nodes last so they sit atop edges
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
-        ctx.fillStyle = hexToRgba("#e0f2fe", 0.8); // sky-100
+        ctx.fillStyle = hexToRgba(nodeColor, 0.8); // sky-100
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         ctx.fill();
@@ -240,18 +239,36 @@ export default function MachineLearningBackground({
 
   return (
     <div className="pointer-events-none fixed inset-0 -z-10">
+      <style>
+        {`
+          @keyframes auroraShift {
+            0%, 100% { transform: translate(-25%, -25%); }
+            50% { transform: translate(25%, 25%); }
+          }
+          @keyframes auroraShiftReverse {
+            0%, 100% { transform: translate(25%, 25%); }
+            50% { transform: translate(-25%, -25%); }
+          }
+        `}
+      </style>
       {/* Soft aurora overlay using tailwind gradients for extra depth */}
-      <div className="absolute inset-0 opacity-60 mix-blend-screen">
-        <div className="absolute -top-24 left-0 h-[60vh] w-[50vw] rounded-full blur-3xl bg-gradient-to-br from-cyan-700/30 via-indigo-600/25 to-teal-700/30" />
-        <div className="absolute bottom-0 right-0 h-[55vh] w-[45vw] rounded-full blur-3xl bg-gradient-to-tr from-indigo-500/20 via-cyan-400/20 to-emerald-500/20" />
+      <div className="absolute inset-0 overflow-hidden opacity-60 mix-blend-screen z-0 pointer-events-none">
+        <div
+          className="absolute -top-24 left-0 h-[60vh] w-[50vw] rounded-full blur-3xl bg-gradient-to-br from-cyan-700/30 via-indigo-600/25 to-teal-700/30"
+          style={{ animation: "auroraShift 60s linear infinite" }}
+        />
+        <div
+          className="absolute bottom-0 right-0 h-[55vh] w-[45vw] rounded-full blur-3xl bg-gradient-to-tr from-indigo-500/20 via-cyan-400/20 to-emerald-500/20"
+          style={{ animation: "auroraShiftReverse 60s linear infinite" }}
+        />
       </div>
 
       {/* Animated graph canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0" />
+      <canvas ref={canvasRef} className="absolute inset-0 z-10" />
 
       {/* Optional scanlines shimmer for a subtle tech feel */}
-      <div className="absolute inset-0 opacity-[0.08]" style={{
-        backgroundImage: `repeating-linear-gradient(0deg, rgba(255,255,255,0.6), rgba(255,255,255,0.6) 1px, transparent 1px, transparent 3px)`,
+      <div className="absolute inset-0 opacity-[0.08] z-20" style={{
+        backgroundImage: `repeating-linear-gradient(0deg, rgba(255,255,255,0.4), rgba(255,255,255,0.4) 1px, transparent 1px, transparent 3px)`,
         maskImage: "linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)",
         WebkitMaskImage: "linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)",
       }} />
@@ -271,33 +288,3 @@ function hexToRgba(hex: string, alpha = 1): string {
   const b = bigint & 255;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
-
-/*
-USAGE
------
-1) Place the component near the root of your app (e.g., in App.tsx or a layout):
-
-   import MachineLearningBackground from "./MachineLearningBackground";
-
-   export default function App() {
-     return (
-       <div className="relative min-h-screen bg-slate-950 text-slate-100">
-         <MachineLearningBackground density={0.0001} speed={1} interactive opacity={0.55} />
-         <main className="relative z-10">
-           <header className="mx-auto max-w-6xl px-6 py-20 text-center">
-             <h1 className="text-4xl md:text-6xl font-bold tracking-tight">SportsbookML</h1>
-             <p className="mt-4 text-slate-300">Machine‑learning powered predictions and insights.</p>
-           </header>
-         </main>
-       </div>
-     );
-   }
-
-2) Tweak density/speed for performance. For mobile, consider smaller density:
-   <MachineLearningBackground density={0.00006} speed={0.9} />
-
-3) If you see any blurriness on Retina displays, that's handled by DPR scaling.
-
-4) Want brand colors? Pass a hex:
-   <MachineLearningBackground color="#06b6d4" /> // Tailwind cyan-500
-*/

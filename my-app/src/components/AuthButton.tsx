@@ -51,11 +51,13 @@ export default function AuthButton() {
             >
               Subscription
             </button>
-            <button
+            <Link
+              to="/settings"
+              onClick={() => setOpen(false)}
               className="block w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
-              Settings
-            </button>
+              User Settings
+            </Link>
             <button
               onClick={handleSignOut}
               className="block w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"

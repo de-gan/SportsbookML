@@ -10,6 +10,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import NavBar from "../components/NavBar";
 import { Link, useNavigate } from "react-router-dom";
+import MachineLearningBackground from "@/components/Background";
 
 // --- Types ---
 interface Prediction {
@@ -388,8 +389,21 @@ export default function SportsbookHome() {
     }
   }, [authLoading, user, navigate]);
 
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.classList.contains("dark")
+  );
+    
+  useEffect(() => {
+    const observer = new MutationObserver(() =>
+      setIsDark(document.documentElement.classList.contains("dark"))
+    );
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
   return user ? (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-emerald-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-screen text-neutral-900 dark:text-neutral-100">
+      <MachineLearningBackground density={0.00015} speed={0.5} interactive opacity={0.1} color={isDark ? "#06b6d4" : "#ff0000ff"} nodeColor={isDark ? "#e0f2fe" : "#ff0000ff"}/>
       <NavBar active="mlb" user={!!user} />
 
       <main className="max-w-7xl mx-auto px-4 py-8">

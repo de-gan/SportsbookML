@@ -8,6 +8,7 @@ import Methodology from './pages/Methodology.tsx'
 import About from './pages/About.tsx'
 import Login from './pages/Login.tsx'
 import Signup from './pages/Register.tsx'
+import Settings from './pages/Settings.tsx'
 import { AuthProvider } from './lib/auth'
 
 const storedTheme = localStorage.getItem('theme')
@@ -27,6 +28,7 @@ const App = () => (
       <Route path="/about" element={<About />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/settings" element={<Settings />} />
     </Routes>
   </BrowserRouter>
 );

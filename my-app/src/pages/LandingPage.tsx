@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "../lib/auth";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -50,6 +50,17 @@ export default function HomeLanding() {
   const [prob, setProb] = useState<string>("0.60"); // 0..1
   const [odds, setOdds] = useState<string>("-110"); // american
   const [mult, setMult] = useState<string>("0.5"); // 0..1
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.classList.contains("dark")
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() =>
+      setIsDark(document.documentElement.classList.contains("dark"))
+    );
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
 
   const kelly = useMemo(() => {
     const p = Number(prob);
@@ -68,7 +79,7 @@ export default function HomeLanding() {
 
   return (
     <div className="min-h-screen text-neutral-900 dark:text-neutral-100">
-      <MachineLearningBackground density={0.0001} speed={0.5} interactive opacity={0.2} />
+      <MachineLearningBackground density={0.00015} speed={0.5} interactive opacity={0.2} color={isDark ? "#06b6d4" : "#ff0000ff"} nodeColor={isDark ? "#e0f2fe" : "#ff0000ff"}/>
       {/* Top nav */}
       <NavBar active="home" user={!!user}/>
 
