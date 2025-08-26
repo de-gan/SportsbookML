@@ -42,6 +42,7 @@ const kellyFraction = (p: number | undefined, odds?: number) => {
 const fmtMoney = (n: number | undefined) => (n === undefined || Number.isNaN(n) ? "—" : `$${n.toFixed(2)}`);
 
 export default function HomeLanding() {
+  // Check auth state
   const { user } = useAuth();
 
   // Demo Kelly widget state
@@ -69,7 +70,7 @@ export default function HomeLanding() {
     <div className="min-h-screen text-neutral-900 dark:text-neutral-100">
       <MachineLearningBackground density={0.0001} speed={0.5} interactive opacity={0.2} />
       {/* Top nav */}
-      <NavBar active="home" />
+      <NavBar active="home" user={!!user}/>
 
       <main className="max-w-7xl mx-auto px-4 py-10">
         {/* Hero */}

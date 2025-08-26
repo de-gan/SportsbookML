@@ -1,13 +1,16 @@
 import { Card, CardContent } from "../components/ui/card";
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../lib/auth";
 import NavBar from "../components/NavBar";
 
 export default function About() {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-emerald-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 text-neutral-900 dark:text-neutral-100">
       {/* Top nav */}
-      <NavBar active="about" showAuthButton={false} />
+      <NavBar active="about" showAuthButton={false} user={!!user} />
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <h1 className="text-3xl font-bold">About</h1>
