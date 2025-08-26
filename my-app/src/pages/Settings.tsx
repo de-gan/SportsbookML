@@ -67,6 +67,40 @@ export default function Settings() {
     }
   };
 
+  const deleteAccount = async () => {
+    if (!user) return;
+    const confirmed = window.confirm(
+      "Are you sure you want to delete your account? This action cannot be undone."
+    );
+    if (!confirmed) return;
+    setStatus(null);
+    setError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetch("/api/delete-account", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to delete account. Contact denmgannon@gmail.com for support and account deletion");
+      }
+      setStatus("Account deleted.");
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to delete account. Contact denmgannon@gmail.com for support and account deletion");
+      }
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen text-neutral-900 dark:text-neutral-100">
@@ -114,6 +148,14 @@ export default function Settings() {
 
             <Button variant="secondary" onClick={resetPassword} className="w-full">
               Reset Password
+            </Button>
+
+            <Button
+              variant="destructive"
+              onClick={deleteAccount}
+              className="w-full"
+            >
+              Delete Account
             </Button>
 
             {status && <div className="text-sm text-green-500">{status}</div>}

@@ -435,7 +435,7 @@ export default function SportsbookHome() {
               </Link>
             </div>
             {lastUpdated && (
-              <p className="text-sm mt-2 text-neutral-600 dark:text-neutral-400">Updates every morning. Last updated: {new Date(lastUpdated).toLocaleString()}</p>
+              <p className="text-sm mt-2 text-neutral-600 dark:text-neutral-400">Last updated: {new Date(lastUpdated).toLocaleString()}</p>
             )}
           </div>
 
