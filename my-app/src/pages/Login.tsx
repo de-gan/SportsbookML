@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import GoogleIcon from "@/assets/Google.svg"
+import Google from "@/assets/GoogleLogo.png"
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -69,7 +69,7 @@ export default function Login() {
               onClick={signInWithGoogle}
             >
               <img
-                src={GoogleIcon}
+                src={Google}
                 alt="Google logo"
                 className="h-4 w-4"
               />
