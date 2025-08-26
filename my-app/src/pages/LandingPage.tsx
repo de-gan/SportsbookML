@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "../lib/auth";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   Brain,
   BarChart3,
@@ -41,6 +42,7 @@ const kellyFraction = (p: number | undefined, odds?: number) => {
 const fmtMoney = (n: number | undefined) => (n === undefined || Number.isNaN(n) ? "—" : `$${n.toFixed(2)}`);
 
 export default function HomeLanding() {
+  // Check auth state
   const { user } = useAuth();
 
   // Demo Kelly widget state
@@ -48,6 +50,17 @@ export default function HomeLanding() {
   const [prob, setProb] = useState<string>("0.60"); // 0..1
   const [odds, setOdds] = useState<string>("-110"); // american
   const [mult, setMult] = useState<string>("0.5"); // 0..1
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.classList.contains("dark")
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() =>
+      setIsDark(document.documentElement.classList.contains("dark"))
+    );
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
 
   const kelly = useMemo(() => {
     const p = Number(prob);
@@ -66,9 +79,9 @@ export default function HomeLanding() {
 
   return (
     <div className="min-h-screen text-neutral-900 dark:text-neutral-100">
-      <MachineLearningBackground density={0.0001} speed={0.5} interactive opacity={0.2} />
+      <MachineLearningBackground density={0.00015} speed={0.5} interactive opacity={0.2} color={isDark ? "#06b6d4" : "#ff0000ff"} nodeColor={isDark ? "#e0f2fe" : "#ff0000ff"}/>
       {/* Top nav */}
-      <NavBar active="home" />
+      <NavBar active="home" user={!!user}/>
 
       <main className="max-w-7xl mx-auto px-4 py-10">
         {/* Hero */}
@@ -84,12 +97,14 @@ export default function HomeLanding() {
             <div className="flex flex-wrap gap-3 mt-5">
               <Button asChild size="lg" className="gap-2">
                 {user ? (
-                  <a href="/mlb"><BiBaseball className="w-4 h-4"/> Explore Today’s MLB Picks</a>
+                  <Link to="/mlb"><BiBaseball className="w-4 h-4"/> Explore Today’s MLB Picks</Link>
                 ) : (
-                  <a href="/signup"><CircleStar className="w-4 h-4"/>Register Now!</a>
+                  <Link to="/signup"><CircleStar className="w-4 h-4"/>Register Now!</Link>
                 )}
               </Button>
-              <Button asChild variant="secondary" size="lg" className="gap-2"><a href="/methodology"><Brain className="w-4 h-4"/> Methodology</a></Button>
+              <Button asChild variant="secondary" size="lg" className="gap-2">
+                <Link to="/methodology"><Brain className="w-4 h-4"/> Methodology</Link>
+              </Button>
             </div>
             <div className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">Realtime slate, sortable edges, CSV export, and more.</div>
           </motion.div>
@@ -186,10 +201,10 @@ export default function HomeLanding() {
                 <p className="text-sm/relaxed text-white/90 mb-4">See today’s projections and recommended stakes right now.</p>
                 <Button asChild size="lg" variant="secondary" className="w-full bg-white/15 hover:bg-white/25 text-white border-white/30">
                   {user ? (
-                  <a href="/mlb"><BiBaseball className="w-4 h-4"/> Go to MLB Predictions</a>
-                ) : (
-                  <a href="/login"><BiBaseball className="w-4 h-4"/> Go to MLB Predictions</a>
-                )}
+                    <Link to="/mlb"><BiBaseball className="w-4 h-4"/> Go to MLB Predictions</Link>
+                  ) : (
+                    <Link to="/login"><BiBaseball className="w-4 h-4"/> Go to MLB Predictions</Link>
+                  )}
                 </Button>
                 <div className="text-xs text-white/80 mt-3 flex items-center gap-1">
                   <Info className="w-3.5 h-3.5"/> Not financial advice. For informational use only.
@@ -203,9 +218,9 @@ export default function HomeLanding() {
         <footer className="mt-12 pb-10 text-sm text-neutral-600 dark:text-neutral-400 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} UpperHand</span>
           <span className="opacity-50">•</span>
-          <a href="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></a>
+          <Link to="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></Link>
           <span className="opacity-50">•</span>
-          <a href="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></a>
+          <Link to="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></Link>
         </footer>
       </main>
     </div>

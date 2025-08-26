@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Link, useNavigate } from "react-router-dom";
 import GoogleIcon from "@/assets/Google.svg"
 
 export default function Login() {
@@ -26,6 +27,8 @@ export default function Login() {
     }
   };
 
+  const navigate = useNavigate();
+
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -33,7 +36,7 @@ export default function Login() {
     if (error) {
       setError(error.message);
     } else {
-      window.location.href = "/mlb";
+      navigate("/mlb");
     }
   };
 
@@ -73,10 +76,10 @@ export default function Login() {
               Sign in with Google
             </Button>
             <Button asChild variant="secondary" className="w-full">
-              <a href="/signup">Create Account</a>
+              <Link to="/signup">Create Account</Link>
             </Button>
             <Button asChild variant="ghost" className="w-full">
-              <a href="/">Back to Home</a>
+              <Link to="/">Back to Home</Link>
             </Button>
           </form>
         </CardContent>

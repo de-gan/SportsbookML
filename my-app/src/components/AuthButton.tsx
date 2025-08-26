@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
@@ -18,9 +19,11 @@ export default function AuthButton() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const navigate = useNavigate();
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/";
+    navigate("/");
   };
 
   if (user) {
@@ -48,11 +51,13 @@ export default function AuthButton() {
             >
               Subscription
             </button>
-            <button
+            <Link
+              to="/settings"
+              onClick={() => setOpen(false)}
               className="block w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
-              Settings
-            </button>
+              User Settings
+            </Link>
             <button
               onClick={handleSignOut}
               className="block w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
@@ -67,7 +72,7 @@ export default function AuthButton() {
 
   return (
     <Button asChild variant="ghost" className="gap-2">
-      <a href="/login">Login/Register</a>
+      <Link to="/login">Login/Register</Link>
     </Button>
   );
 }

@@ -1,12 +1,15 @@
 import { Card, CardContent } from "../components/ui/card";
 import { ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import { useAuth } from "../lib/auth";
 
 export default function Methodology() {
+  const { user } = useAuth();
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-emerald-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 text-neutral-900 dark:text-neutral-100">
       {/* Top nav */}
-      <NavBar showAuthButton={false} />
+      <NavBar showAuthButton={false} user={!!user} />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Model Methodology</h1>
@@ -34,9 +37,9 @@ export default function Methodology() {
         <footer className="mt-12 pb-10 text-sm text-neutral-600 dark:text-neutral-400 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} UpperHand</span>
           <span className="opacity-50">•</span>
-          <a href="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></a>
+          <Link to="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></Link>
           <span className="opacity-50">•</span>
-          <a href="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></a>
+          <Link to="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></Link>
         </footer>
       </main>
     </div>
