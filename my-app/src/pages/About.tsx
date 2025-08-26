@@ -1,5 +1,6 @@
 import { Card, CardContent } from "../components/ui/card";
 import { ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
 
 export default function About() {
@@ -28,9 +29,9 @@ export default function About() {
         <footer className="mt-12 pb-10 text-sm text-neutral-600 dark:text-neutral-400 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} UpperHand</span>
           <span className="opacity-50">•</span>
-          <a href="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></a>
+          <Link to="/about" className="inline-flex items-center gap-1 hover:underline">About <ExternalLink className="w-3.5 h-3.5"/></Link>
           <span className="opacity-50">•</span>
-          <a href="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></a>
+          <Link to="/methodology" className="inline-flex items-center gap-1 hover:underline">Methodology <ExternalLink className="w-3.5 h-3.5"/></Link>
         </footer>
       </main>
     </div>

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import SportsbookHome from './pages/MLB.tsx'
 import HomeLanding from './pages/LandingPage.tsx'
 import Methodology from './pages/Methodology.tsx'
@@ -17,22 +18,18 @@ if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color
   document.documentElement.classList.remove('dark')
 }
 
-const App = () => {
-  switch (window.location.pathname) {
-    case '/mlb':
-      return <SportsbookHome />;
-    case '/methodology':
-      return <Methodology />;
-    case '/about':
-      return <About />
-    case '/login':
-      return <Login />;
-    case '/signup':
-      return <Signup />;
-    default:
-      return <HomeLanding />;
-  }
-};
+const App = () => (
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<HomeLanding />} />
+      <Route path="/mlb" element={<SportsbookHome />} />
+      <Route path="/methodology" element={<Methodology />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+    </Routes>
+  </BrowserRouter>
+);
 
 export default App;
 
