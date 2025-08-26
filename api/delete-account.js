@@ -8,25 +8,31 @@ const SUPABASE_KEY =
  * Vercel serverless function to delete the authenticated user's account.
  */
 module.exports = async (req, res) => {
+  const send = (status, payload) => {
+    res.statusCode = status;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(payload));
+  };
+
   if (req.method !== 'DELETE') {
     res.setHeader('Allow', 'DELETE');
-    return res.status(405).json({ error: 'Method not allowed' });
+    return send(405, { error: 'Method not allowed' });
   }
 
   const authHeader = req.headers.authorization || '';
   const token = authHeader.split(' ')[1];
   if (!token) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return send(401, { error: 'Unauthorized' });
   }
 
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error("Missing Supabase configuration");
-    return res.status(500).json({ error: "Server misconfiguration" });
+    console.error('Missing Supabase configuration');
+    return send(500, { error: 'Server misconfiguration' });
   }
 
   try {
     const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      method: "DELETE",
+      method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
         apikey: SUPABASE_KEY,
@@ -35,13 +41,14 @@ module.exports = async (req, res) => {
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      const message = body.error_description || body.error || "Failed to delete account.";
-      return res.status(response.status).json({ error: message });
+      const message =
+        body.error_description || body.error || 'Failed to delete account.';
+      return send(response.status, { error: message });
     }
 
-    return res.status(200).json({ success: true });
+    return send(200, { success: true });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'Failed to delete account.' });
+    return send(500, { error: 'Failed to delete account.' });
   }
 };
