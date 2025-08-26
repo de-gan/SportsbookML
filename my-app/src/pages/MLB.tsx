@@ -9,7 +9,7 @@ import { Badge } from "../components/ui/badge";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import NavBar from "../components/NavBar";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import MachineLearningBackground from "@/components/Background";
 
 // --- Types ---
@@ -135,7 +135,7 @@ function runInternalTests() {
 
 // --- Component ---
 export default function SportsbookHome() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
 
   const [data, setData] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -382,13 +382,6 @@ export default function SportsbookHome() {
     URL.revokeObjectURL(url);
   };
 
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/login");
-    }
-  }, [authLoading, user, navigate]);
-
   const [isDark, setIsDark] = useState(
     () => document.documentElement.classList.contains("dark")
   );
@@ -401,7 +394,7 @@ export default function SportsbookHome() {
     return () => observer.disconnect();
   }, []);
 
-  return user ? (
+  return (
     <div className="min-h-screen text-neutral-900 dark:text-neutral-100">
       <MachineLearningBackground density={0.00015} speed={0.5} interactive opacity={0.1} color={isDark ? "#06b6d4" : "#ff0000ff"} nodeColor={isDark ? "#e0f2fe" : "#ff0000ff"}/>
       <NavBar active="mlb" user={!!user} />
@@ -671,5 +664,5 @@ export default function SportsbookHome() {
         </footer>
       </main>
     </div>
-  ) : null;
+  );
 }
