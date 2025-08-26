@@ -49,7 +49,7 @@ export default function NavBar({ active, showAuthButton = true, user = false }: 
             className={`gap-2 ${active === "mlb" ? activeClass : ""}`}
           >
 
-            <a href={user ? "/mlb" : "/login"}>
+            <Link to={user ? "/mlb" : "/login"}>
               <BiBaseball className="w-4 h-4" /> MLB
             </Link>
           </Button>
