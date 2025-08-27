@@ -19,7 +19,15 @@ available sportsbook odds.
 
 ## Getting started
 
-1. **Generate predictions**
+1. **Install dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   npm install
+   (cd my-app && npm install)
+   ```
+
+2. **Generate predictions**
 
    The pipeline writes predictions to `data/processed/games_today.csv` and, if
    the `SUPABASE_URL` and `SUPABASE_KEY` environment variables are set, also

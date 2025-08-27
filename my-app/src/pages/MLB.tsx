@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Trophy, RefreshCcw, CloudOff, Download, Filter, ExternalLink} from "lucide-react";
+import { Trophy, CloudOff, Download, Filter, ExternalLink} from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -142,7 +142,7 @@ export default function SportsbookHome() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [probViewAmerican, setProbViewAmerican] = useState(false);
-  const [minEdge, setMinEdge] = useState(0.1); // probability difference
+  const [minEdge, setMinEdge] = useState(0); // probability difference
   const [sortKey, setSortKey] = useState<"start" | "edge" | "prob" | "book">("edge");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [selectedBooks, setSelectedBooks] = useState<string[]>([...SPORTSBOOKS]);
@@ -407,29 +407,30 @@ export default function SportsbookHome() {
             <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
               Transparent, data-driven picks from machine learning models to estimate results and gain the upper hand on sportsbooks. 
               Model includes 100+ features and data from games across the 2023, 2024, and 2025 seasons. Filter and sort for specific results and export your board.
-            </p>
-            <br></br>
-            <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
-              The Kelly Criterion is a bankroll management strategy that helps you decide how much to wager based on your edge over the sportsbook’s odds. 
-              It aims to maximize long-term growth while reducing the risk of going broke. The formula uses the estimated win probability from the ML model,
-              sportsbooks' odds, and your current bankroll. The Kelly Criterion helps you avoid betting too much when your edge is small and bet more when your advantage is big.
-              Our system automatically applies this method to give you a recommended bet size so you can bet smarter, not just bigger.
-            </p>
-            <br></br>
-            <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
-              Edge is used to calculate the expected value (EV) of a wager. The Kelly Bet is the suggested bet based on your bankroll and Kelly multiplier.
-              Increase the Minimum Edge to be more conservative on bets. Changing Kelly Multiplier adjusts percentage of Bankroll that is used for bet.
+              <br/><br/>
+              Edge is the difference between the model prediction and a book's implied odds. It is used to calculate the expected value (EV) of a wager. The higher the edge value, the more favorable the odds are to bettors. The Kelly Bet is the suggested bet based on the set bankroll and Kelly multiplier.
+              <br/><br/>
+              <b>How to Use:</b><br/>
+              • Filter for your Sportsbooks
+              <br/>
+              • Set a minimum edge threshold (Minimum Edge of 0 means all games are shown)
+              <br/>
+              • Set your bankroll, max bet, and Kelly multiplier to see recommended bets
+              <br/>
+              • A higher Kelly multiplier means a higher percentage of your bankroll is recommended per bet
+              <br/><br/>
+              <span className="inline-flex gap-1">Learn more about the Kelly Criterion:
+                <Link to="/methodology" className="inline-flex items-center gap-1 text-indigo-600 hover:underline">
+                  Methodology <ExternalLink className="w-4 h-4"/>
+                </Link>
+              </span>
             </p>
             <div className="flex flex-wrap gap-3 mt-4">
-              <Button onClick={downloadCsv} className="gap-2"><Download className="w-4 h-4"/> Export CSV</Button>
-              <Button variant="secondary" onClick={() => window.location.reload()} className="gap-2"><RefreshCcw className="w-4 h-4"/> Refresh</Button>
-              <Link to="/methodology" className="inline-flex items-center gap-2 text-indigo-600 hover:underline">
-                Methodology <ExternalLink className="w-4 h-4"/>
-              </Link>
+              <Button onClick={downloadCsv} className="gap-2"><Download className="w-4 h-4"/> Download CSV</Button>
+              {lastUpdated && (
+                <p className="text-sm mt-2 text-neutral-600 dark:text-neutral-400">Last updated: {new Date(lastUpdated).toLocaleString()}</p>
+              )}
             </div>
-            {lastUpdated && (
-              <p className="text-sm mt-2 text-neutral-600 dark:text-neutral-400">Last updated: {new Date(lastUpdated).toLocaleString()}</p>
-            )}
           </div>
 
           {/* Kelly Controls */}
@@ -466,7 +467,7 @@ export default function SportsbookHome() {
                 <div>
                   <div className="flex items-center justify-between mb-2 text-sm">
                     <span>Minimum Edge</span>
-                    <span className="text-neutral-500">(Recommended: 0.05-0.10)</span>
+                    <span className="text-neutral-500">(Recommended: 0.08-0.10)</span>
                     <span className="font-semibold">{minEdge.toFixed(2)}</span>
                   </div>
                   <Slider className="my-slider accent-white" value={[minEdge]} min={0} max={0.2} step={0.01} onValueChange={(v) => setMinEdge(v[0])} />

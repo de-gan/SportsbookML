@@ -21,7 +21,7 @@ export default function Methodology() {
     }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-emerald-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-screen text-neutral-900 dark:text-neutral-100">
       <MachineLearningBackground density={0.00015} speed={0.5} interactive opacity={0.2} color={isDark ? "#06b6d4" : "#ff0000ff"} nodeColor={isDark ? "#e0f2fe" : "#ff0000ff"}/>
       {/* Top nav */}
       <NavBar showAuthButton={false} user={!!user} />
@@ -44,6 +44,11 @@ export default function Methodology() {
             </ul>
             <p>
               We compare predicted win probabilities to sportsbook lines to compute edges and recommend stakes using the Kelly Criterion.
+              <br/><br/>
+              The Kelly Criterion is a bankroll management strategy used by many professional sports bettors. This method helps you decide how much to wager based on your edge over the sportsbook’s odds. 
+              It aims to maximize long-term growth while reducing the risk of going broke. The formula uses the estimated win probability from the ML model,
+              sportsbooks' odds, and your current bankroll. The Kelly Criterion helps you avoid betting too much when your edge is small and bet more when your advantage is big.
+              Our system automatically applies this method to give you a recommended bet size so you can bet smarter, not just bigger.
             </p>
           </CardContent>
         </Card>
