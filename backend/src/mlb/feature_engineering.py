@@ -4,8 +4,8 @@ import time
 from tqdm import tqdm
 import random
 
-from src.pitchers import get_starting_pitcher
-from src.fangraphs_stats import fg_team_snapshot
+from src.mlb.pitchers import get_starting_pitcher
+from src.mlb.fangraphs_stats import fg_team_snapshot
 
 # Arizona D'Backs when creating raw data (for collecting boxscores) or making prediction
 # Arizona Diamondbacks when creating processed data 

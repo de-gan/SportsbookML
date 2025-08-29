@@ -7,11 +7,11 @@ import os
 from datetime import date, datetime
 from bs4 import BeautifulSoup, Comment
 
-from src.feature_engineering import full_to_abbrev
-from src.pitchers import get_player_stats
-from src.lgbm_model import load_clf_model, FEATURES
-from src.fangraphs_stats import fg_team_snapshot
-from src.supabase_client import ensure_local_file, upload_file_to_bucket
+from src.mlb.feature_engineering import full_to_abbrev
+from src.mlb.pitchers import get_player_stats
+from src.mlb.lgbm_model import load_clf_model, FEATURES
+from src.mlb.fangraphs_stats import fg_team_snapshot
+from src.mlb.supabase_client import ensure_local_file, upload_file_to_bucket
 
 HISTORY = "data/pred_history.csv"
 

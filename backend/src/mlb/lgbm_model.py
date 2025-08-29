@@ -5,8 +5,8 @@ import lightgbm as lgb
 from sklearn.model_selection import train_test_split, StratifiedKFold, RandomizedSearchCV
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, root_mean_squared_error, r2_score
 
-from src.load_process import load_all_teams_data
-from src.supabase_client import upload_file_to_bucket, ensure_local_file
+from src.mlb.load_process import load_all_teams_data
+from src.mlb.supabase_client import upload_file_to_bucket, ensure_local_file
 
 # Recently removed:
 # 'R_MA3', 'R_MA5', 'R_MA10', 
