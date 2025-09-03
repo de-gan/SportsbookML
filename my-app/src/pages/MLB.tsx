@@ -627,7 +627,7 @@ export default function SportsbookHome() {
                           {negativeEdge ? (
                             <div className="space-y-1">
                               <div className="font-medium">None</div>
-                              <div className="text-neutral-600 dark:text-neutral-300">0</div>
+                              <div className="text-neutral-600 dark:text-neutral-300">$0.00 <span className="text-xs">(0%)</span></div>
                             </div>
                           ) : g.recSide ? (
                             <div className="space-y-1">
