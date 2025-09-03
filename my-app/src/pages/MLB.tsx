@@ -142,7 +142,7 @@ export default function SportsbookHome() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [probViewAmerican, setProbViewAmerican] = useState(false);
-  const [minEdge, setMinEdge] = useState(0); // probability difference
+  const [minEdge, setMinEdge] = useState(-0.1); // probability difference
   const [sortKey, setSortKey] = useState<"start" | "edge" | "prob" | "book">("edge");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [selectedBooks, setSelectedBooks] = useState<string[]>([...SPORTSBOOKS]);
@@ -470,7 +470,7 @@ export default function SportsbookHome() {
                     <span className="text-neutral-500">(Recommended: 0.08-0.10)</span>
                     <span className="font-semibold">{minEdge.toFixed(2)}</span>
                   </div>
-                  <Slider className="my-slider accent-white" value={[minEdge]} min={0} max={0.2} step={0.01} onValueChange={(v) => setMinEdge(v[0])} />
+                  <Slider className="my-slider accent-white" value={[minEdge]} min={-0.1} max={0.2} step={0.01} onValueChange={(v) => setMinEdge(v[0])} />
                 </div>
                 <div className="flex items-center gap-3">
                   <Switch checked={probViewAmerican} onCheckedChange={setProbViewAmerican} id="view-odds" />
