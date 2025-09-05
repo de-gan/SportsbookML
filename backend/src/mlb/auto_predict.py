@@ -314,7 +314,7 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
     X = pd.DataFrame(feats, columns=FEATURES)
     #X.to_csv("data/games_today_stats.csv", index=False)
 
-    clf = load_clf_model("backend/models/wl_lgbm.txt")
+    clf = load_clf_model("backend/models/mlb_wl_lgbm.txt")
     probs = clf.predict(X)
     
     probs_df = pd.DataFrame(records)

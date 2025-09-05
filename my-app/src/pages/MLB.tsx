@@ -506,6 +506,7 @@ export default function SportsbookHome() {
               <div className="text-sm mb-1 font-medium">
                 Current Model Prediction Record: {history.correct}/{history.total} ({((history.correct / history.total) * 100).toFixed(1)}%)
                 <></>
+                <span className="text-xs mt-2 text-neutral-600 dark:text-neutral-400"> Theoretical Accuracy: 61%</span>
               </div>
               <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2 overflow-hidden">
                 <div className="bg-gradient-to-br from-cyan-700 via-indigo-600 to-teal-700 h-full" style={{ width: `${(history.correct / history.total) * 100}%` }}></div>
@@ -517,7 +518,7 @@ export default function SportsbookHome() {
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4"/>
                 <h2 className="font-semibold">Today's MLB Moneyline Predictions</h2>
-                <Badge variant="secondary">Model v1.2</Badge>
+                <Badge variant="secondary">Model v1.3</Badge>
               </div>
               <div className="text-xs text-neutral-600 dark:text-neutral-400">
                 {isFinite(bankrollNum) && bankrollNum > 0 ? `Bankroll: $${bankrollNum.toFixed(2)}` : "Set bankroll to see bet sizing"}
