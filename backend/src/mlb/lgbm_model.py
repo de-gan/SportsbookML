@@ -13,6 +13,7 @@ from sklearn.metrics import (
     brier_score_loss,
 )
 from sklearn.calibration import CalibratedClassifierCV, CalibrationDisplay
+from sklearn.frozen import FrozenEstimator
 
 from src.mlb.load_process import load_all_teams_data
 from src.mlb.supabase_client import upload_file_to_bucket, ensure_local_file
@@ -279,7 +280,7 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> CalibratedClassifierCV:
         ],
     )
 
-    calibrated_clf = CalibratedClassifierCV(best_clf, method="isotonic", cv="prefit")
+    calibrated_clf = CalibratedClassifierCV(FrozenEstimator(best_clf), method="isotonic")
     calibrated_clf.fit(X_valid, y_valid)
 
     y_pred_proba = calibrated_clf.predict_proba(X_test)[:, 1]

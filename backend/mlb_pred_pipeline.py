@@ -78,5 +78,5 @@ if __name__ == '__main__':
     #create_models()
     d = date.today().strftime("%Y-%m-%d")
     #full_updated_odds(d)
-    #create_models()
-    upload_file_to_bucket("backend/models/mlb_wl_lgbm.txt", dest_path=f"models/mlb_wl_lgbm.txt")
+    create_models()
+    #upload_file_to_bucket("backend/models/mlb_wl_lgbm.txt", dest_path=f"models/mlb_wl_lgbm.txt")
