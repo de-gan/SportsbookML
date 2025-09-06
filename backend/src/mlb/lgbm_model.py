@@ -11,6 +11,8 @@ from sklearn.metrics import (
     root_mean_squared_error,
     r2_score,
     brier_score_loss,
+    log_loss,
+    confusion_matrix,
 )
 from sklearn.calibration import CalibratedClassifierCV, CalibrationDisplay
 from sklearn.frozen import FrozenEstimator
@@ -280,8 +282,24 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> CalibratedClassifierCV:
         ],
     )
 
-    calibrated_clf = CalibratedClassifierCV(FrozenEstimator(best_clf), method="isotonic")
-    calibrated_clf.fit(X_valid, y_valid)
+    # Use the best iteration found during early stopping for calibrated model
+    tuned_clf = lgb.LGBMClassifier(
+        objective='binary',
+        boosting_type='gbdt',
+        class_weight='balanced',
+        n_jobs=-1,
+        random_state=42,
+        n_estimators=best_clf.best_iteration_ or best_clf.n_estimators,
+        **best_params,
+    )
+
+    # Isotonic calibration can overfit on smaller samples and produce
+    # overconfident probabilities clustered near 0 or 1. Platt scaling
+    # (sigmoid) yields smoother, more conservative probability estimates.
+    calibrated_clf = CalibratedClassifierCV(
+        tuned_clf, method="sigmoid", cv=cv
+    )
+    calibrated_clf.fit(X_train_full, y_train_full)
 
     y_pred_proba = calibrated_clf.predict_proba(X_test)[:, 1]
     y_pred = (y_pred_proba >= 0.5).astype(int)
@@ -289,18 +307,8 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> CalibratedClassifierCV:
     accuracy = accuracy_score(y_test, y_pred)
     roc_auc = roc_auc_score(y_test, y_pred_proba)
     brier = brier_score_loss(y_test, y_pred_proba)
-
-    print(f"Sequential Accuracy: {accuracy:.3f}")
-    print(f"Sequential ROC AUC: {roc_auc:.3f}")
-    print(f"Brier Score Loss: {brier:.3f}")
-    print(classification_report(y_test, y_pred))
-
-    try:
-        import matplotlib.pyplot as plt
-        CalibrationDisplay.from_estimator(calibrated_clf, X_test, y_test)
-        plt.close()
-    except Exception as exc:
-        print(f"Could not create calibration plot: {exc}")
+    logloss = log_loss(y_test, y_pred_proba)
+    cm = confusion_matrix(y_test, y_pred)
 
     print("Feature importances:")
     feature_importances = pd.DataFrame({
@@ -309,6 +317,20 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> CalibratedClassifierCV:
     }).sort_values(by='Importance', ascending=False)
 
     print(feature_importances.to_string())
+
+    print(f"Sequential Accuracy: {accuracy:.3f}")
+    print(f"Sequential ROC AUC: {roc_auc:.3f}")
+    print(f"Brier Score Loss: {brier:.3f}")
+    print(f"Log Loss: {logloss:.3f}")
+    print("Confusion Matrix:\n", cm)
+    print(classification_report(y_test, y_pred))
+
+    try:
+        import matplotlib.pyplot as plt
+        CalibrationDisplay.from_estimator(calibrated_clf, X_test, y_test)
+        plt.close()
+    except Exception as exc:
+        print(f"Could not create calibration plot: {exc}")
 
     best_clf.booster_.save_model("backend/models/mlb_wl_lgbm.txt")
     joblib.dump(calibrated_clf, "backend/models/mlb_wl_calibrated.joblib")
