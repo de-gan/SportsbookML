@@ -2,8 +2,17 @@ import os
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
+import joblib
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
-from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, root_mean_squared_error, r2_score
+from sklearn.metrics import (
+    accuracy_score,
+    roc_auc_score,
+    classification_report,
+    root_mean_squared_error,
+    r2_score,
+    brier_score_loss,
+)
+from sklearn.calibration import CalibratedClassifierCV, CalibrationDisplay
 
 from src.mlb.load_process import load_all_teams_data
 from src.mlb.supabase_client import upload_file_to_bucket, ensure_local_file
@@ -188,8 +197,8 @@ def train_run_total_model(df: pd.DataFrame) -> lgb.Booster:
     return model
 
     
-def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
-    """Train a LightGBM classifier with cross-validation and hyperparameter search."""
+def train_lgbm_classification_model(df: pd.DataFrame) -> CalibratedClassifierCV:
+    """Train and calibrate a LightGBM classifier."""
 
     target = 'W/L'
 
@@ -270,15 +279,27 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
         ],
     )
 
-    y_pred_proba = best_clf.predict_proba(X_test)[:, 1]
+    calibrated_clf = CalibratedClassifierCV(best_clf, method="isotonic", cv="prefit")
+    calibrated_clf.fit(X_valid, y_valid)
+
+    y_pred_proba = calibrated_clf.predict_proba(X_test)[:, 1]
     y_pred = (y_pred_proba >= 0.5).astype(int)
 
     accuracy = accuracy_score(y_test, y_pred)
     roc_auc = roc_auc_score(y_test, y_pred_proba)
+    brier = brier_score_loss(y_test, y_pred_proba)
 
     print(f"Sequential Accuracy: {accuracy:.3f}")
     print(f"Sequential ROC AUC: {roc_auc:.3f}")
+    print(f"Brier Score Loss: {brier:.3f}")
     print(classification_report(y_test, y_pred))
+
+    try:
+        import matplotlib.pyplot as plt
+        CalibrationDisplay.from_estimator(calibrated_clf, X_test, y_test)
+        plt.close()
+    except Exception as exc:
+        print(f"Could not create calibration plot: {exc}")
 
     print("Feature importances:")
     feature_importances = pd.DataFrame({
@@ -288,10 +309,10 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
 
     print(feature_importances.to_string())
 
-    # Save the underlying Booster model
     best_clf.booster_.save_model("backend/models/mlb_wl_lgbm.txt")
+    joblib.dump(calibrated_clf, "backend/models/mlb_wl_calibrated.joblib")
 
-    return best_clf.booster_
+    return calibrated_clf
 
 def load_reg_model(model_path: str) -> lgb.Booster:
     if not os.path.exists(model_path):
@@ -334,8 +355,15 @@ def create_models():
     train_lgbm_classification_model(df)
     train_run_diff_model(df)
     train_run_total_model(df)
-    
+
     try:
-        upload_file_to_bucket("backend/models/mlb_wl_lgbm.txt", dest_path=f"models/mlb_wl_lgbm.txt")
+        upload_file_to_bucket(
+            "backend/models/mlb_wl_lgbm.txt",
+            dest_path="models/mlb_wl_lgbm.txt",
+        )
+        upload_file_to_bucket(
+            "backend/models/mlb_wl_calibrated.joblib",
+            dest_path="models/mlb_wl_calibrated.joblib",
+        )
     except Exception as exc:
         print(f"Failed to upload history CSV to Supabase storage: {exc}")
