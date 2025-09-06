@@ -2,11 +2,21 @@ import os
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
-from sklearn.model_selection import train_test_split, StratifiedKFold, RandomizedSearchCV
-from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, root_mean_squared_error, r2_score
+import joblib
+from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
+from sklearn.metrics import (
+    accuracy_score,
+    roc_auc_score,
+    classification_report,
+    root_mean_squared_error,
+    r2_score,
+    brier_score_loss,
+)
+from sklearn.calibration import CalibratedClassifierCV, CalibrationDisplay
+from sklearn.frozen import FrozenEstimator
 
-from src.load_process import load_all_teams_data
-from src.supabase_client import upload_file_to_bucket, ensure_local_file
+from src.mlb.load_process import load_all_teams_data
+from src.mlb.supabase_client import upload_file_to_bucket, ensure_local_file
 
 # Recently removed:
 # 'R_MA3', 'R_MA5', 'R_MA10', 
@@ -70,13 +80,18 @@ def train_run_diff_model(df: pd.DataFrame) -> lgb.Booster:
     # 1) Load processed features
     df['Run_Diff'] = df['R'] - df['RA']
 
-    # 2) Drop missing
+    # 2) Drop missing and sort chronologically
+    df = df.dropna(subset=FEATURES + ['Run_Diff'])
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.sort_values('Date')
     df = df.dropna(subset=FEATURES + ['Run_Diff'])
     X = _prepare_features(df, FEATURES)
     y = df['Run_Diff']
 
-    # 3) Train/test split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # 3) Chronological train/test split
+    split_idx = int(len(df) * 0.8)
+    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
 
     # 4) Create LightGBM datasets
     dtrain = lgb.Dataset(X_train, label=y_train)
@@ -117,7 +132,7 @@ def train_run_diff_model(df: pd.DataFrame) -> lgb.Booster:
     print(f"RunDiff RMSE: {rmse:.3f}, R2: {r2:.3f}")
 
     # 8) Save the model
-    model.save_model(f"models/run_diff_lgbm.txt")
+    model.save_model(f"backend/models/run_diff_lgbm.txt")
     return model
 
 
@@ -128,13 +143,17 @@ def train_run_total_model(df: pd.DataFrame) -> lgb.Booster:
     # 1) Load processed features
     df['Run_Total'] = df['R'] + df['RA']
 
-    # 2) Drop missing
+    # 2) Drop missing and sort chronologically
     df = df.dropna(subset=FEATURES + ['Run_Total'])
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.sort_values('Date')
     X = _prepare_features(df, FEATURES)
     y = df['Run_Total']
 
-    # 3) Train/test split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # 3) Chronological train/test split
+    split_idx = int(len(df) * 0.8)
+    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
 
     # 4) Create LightGBM datasets
     dtrain = lgb.Dataset(X_train, label=y_train)
@@ -175,28 +194,26 @@ def train_run_total_model(df: pd.DataFrame) -> lgb.Booster:
     print(f"RunTotal RMSE: {rmse:.3f}, R2: {r2:.3f}")
 
     # 8) Save the model
-    model.save_model(f"models/run_total_lgbm.txt")
+    model.save_model(f"backend/models/run_total_lgbm.txt")
     return model
 
     
-def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
-    """Train a LightGBM classifier with cross-validation and hyperparameter search."""
+def train_lgbm_classification_model(df: pd.DataFrame) -> CalibratedClassifierCV:
+    """Train and calibrate a LightGBM classifier."""
 
     target = 'W/L'
 
-    # Drop rows with missing values in features or target
+    # Drop rows with missing values, parse dates, and sort chronologically
     df = df.dropna(subset=FEATURES + [target])
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.sort_values('Date')
     X = _prepare_features(df, FEATURES)
     y = df[target]
 
-    # Split once to hold out a final test set
-    X_train_full, X_test, y_train_full, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-        stratify=y
-    )
+    # Split once to hold out a final test set (chronological)
+    split_idx = int(len(df) * 0.8)
+    X_train_full, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train_full, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
 
     # Base model for hyperparameter tuning
     base_clf = lgb.LGBMClassifier(
@@ -218,7 +235,7 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
         'reg_lambda': [0.0, 0.1, 0.5],
     }
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv = TimeSeriesSplit(n_splits=5)
 
     search = RandomizedSearchCV(
         estimator=base_clf,
@@ -237,14 +254,10 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
     best_params = search.best_params_
     print(f"Best params: {best_params}")
 
-    # Further split training data for early stopping
-    X_train, X_valid, y_train, y_valid = train_test_split(
-        X_train_full,
-        y_train_full,
-        test_size=0.2,
-        random_state=42,
-        stratify=y_train_full,
-    )
+    # Further split training data for early stopping (chronological)
+    val_idx = int(len(X_train_full) * 0.8)
+    X_train, X_valid = X_train_full.iloc[:val_idx], X_train_full.iloc[val_idx:]
+    y_train, y_valid = y_train_full.iloc[:val_idx], y_train_full.iloc[val_idx:]
 
     best_clf = lgb.LGBMClassifier(
         objective='binary',
@@ -267,15 +280,27 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
         ],
     )
 
-    y_pred_proba = best_clf.predict_proba(X_test)[:, 1]
+    calibrated_clf = CalibratedClassifierCV(FrozenEstimator(best_clf), method="isotonic")
+    calibrated_clf.fit(X_valid, y_valid)
+
+    y_pred_proba = calibrated_clf.predict_proba(X_test)[:, 1]
     y_pred = (y_pred_proba >= 0.5).astype(int)
 
     accuracy = accuracy_score(y_test, y_pred)
     roc_auc = roc_auc_score(y_test, y_pred_proba)
+    brier = brier_score_loss(y_test, y_pred_proba)
 
-    print(f"Accuracy: {accuracy:.3f}")
-    print(f"ROC AUC: {roc_auc:.3f}")
+    print(f"Sequential Accuracy: {accuracy:.3f}")
+    print(f"Sequential ROC AUC: {roc_auc:.3f}")
+    print(f"Brier Score Loss: {brier:.3f}")
     print(classification_report(y_test, y_pred))
+
+    try:
+        import matplotlib.pyplot as plt
+        CalibrationDisplay.from_estimator(calibrated_clf, X_test, y_test)
+        plt.close()
+    except Exception as exc:
+        print(f"Could not create calibration plot: {exc}")
 
     print("Feature importances:")
     feature_importances = pd.DataFrame({
@@ -285,10 +310,10 @@ def train_lgbm_classification_model(df: pd.DataFrame) -> lgb.Booster:
 
     print(feature_importances.to_string())
 
-    # Save the underlying Booster model
-    best_clf.booster_.save_model("models/wl_lgbm.txt")
+    best_clf.booster_.save_model("backend/models/mlb_wl_lgbm.txt")
+    joblib.dump(calibrated_clf, "backend/models/mlb_wl_calibrated.joblib")
 
-    return best_clf.booster_
+    return calibrated_clf
 
 def load_reg_model(model_path: str) -> lgb.Booster:
     if not os.path.exists(model_path):
@@ -331,8 +356,15 @@ def create_models():
     train_lgbm_classification_model(df)
     train_run_diff_model(df)
     train_run_total_model(df)
-    
+
     try:
-        upload_file_to_bucket("models/wl_lgbm.txt", dest_path=f"models/wl_lgbm.txt")
+        upload_file_to_bucket(
+            "backend/models/mlb_wl_lgbm.txt",
+            dest_path="models/mlb_wl_lgbm.txt",
+        )
+        upload_file_to_bucket(
+            "backend/models/mlb_wl_calibrated.joblib",
+            dest_path="models/mlb_wl_calibrated.joblib",
+        )
     except Exception as exc:
         print(f"Failed to upload history CSV to Supabase storage: {exc}")

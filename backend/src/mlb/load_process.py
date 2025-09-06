@@ -4,10 +4,10 @@ import requests_cache
 
 from pybaseball import schedule_and_record
 
-from src.feature_engineering import create_features, full_to_abbrev
-from src.pitchers import get_all_boxscores
-from src.supabase_client import ensure_local_file
-from src.supabase_client import upload_file_to_bucket
+from src.mlb.feature_engineering import create_features, full_to_abbrev
+from src.mlb.pitchers import get_all_boxscores
+from src.mlb.supabase_client import ensure_local_file
+from src.mlb.supabase_client import upload_file_to_bucket
 
 HISTORY = "data/pred_history.csv"
 

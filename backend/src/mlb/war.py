@@ -5,8 +5,6 @@ import pandas as pd
 from functools import lru_cache
 from datetime import date
 
-#from pitchers import get_mlb_pid
-
 @lru_cache(maxsize=None)
 def fetch_daily_war_df(game_date) -> pd.DataFrame:
     """

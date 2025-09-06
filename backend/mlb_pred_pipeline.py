@@ -7,11 +7,11 @@ import os
 import pandas as pd
 import numpy as np
 from datetime import date
-from src.load_process import update_season_data, get_teams_schedules, load_all_teams_data
-from src.lgbm_model import create_models
-from src.auto_predict import predict_for_date
-from src.odds import get_game_odds_today, suggest_units
-from src.supabase_client import upsert_predictions, upload_file_to_bucket, ensure_local_file
+from src.mlb.load_process import update_season_data, get_teams_schedules, load_all_teams_data
+from src.mlb.lgbm_model import create_models
+from src.mlb.auto_predict import predict_for_date
+from src.mlb.odds import get_game_odds_today, suggest_units
+from src.mlb.supabase_client import upsert_predictions, upload_file_to_bucket, ensure_local_file
 
 def predict_and_odds(date: str, bankroll: float, kelly: float, min_edge: float, max_bet_frac: float):
     pred_df = predict_for_date(date)
@@ -78,4 +78,4 @@ if __name__ == '__main__':
     #create_models()
     d = date.today().strftime("%Y-%m-%d")
     full_updated_odds(d)
-    
+    #upload_file_to_bucket("backend/models/mlb_wl_lgbm.txt", dest_path=f"models/mlb_wl_lgbm.txt")

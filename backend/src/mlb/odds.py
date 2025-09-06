@@ -5,7 +5,7 @@ import os
 from datetime import date, timedelta
 
 from dotenv import load_dotenv
-from src.feature_engineering import full_to_abbrev
+from src.mlb.feature_engineering import full_to_abbrev
 
 load_dotenv()
 

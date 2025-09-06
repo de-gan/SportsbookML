@@ -11,8 +11,8 @@ from datetime import datetime, date
 from bs4 import BeautifulSoup, Comment
 from pybaseball import playerid_lookup, statcast_pitcher, pitching_stats
 
-from src.war import get_pitcher_war_on_date
-from src.supabase_client import ensure_local_file
+from src.mlb.war import get_pitcher_war_on_date
+from src.mlb.supabase_client import ensure_local_file
 
 requests_cache.install_cache('bbref_cache', expire_after=86400)
 session = requests_cache.CachedSession()
