@@ -9,7 +9,8 @@ from bs4 import BeautifulSoup, Comment
 
 from src.mlb.feature_engineering import full_to_abbrev
 from src.mlb.pitchers import get_player_stats
-from src.mlb.lgbm_model import load_clf_model, FEATURES
+from src.mlb.lgbm_model import FEATURES
+import joblib
 from src.mlb.fangraphs_stats import fg_team_snapshot
 from src.mlb.supabase_client import ensure_local_file, upload_file_to_bucket
 
@@ -314,8 +315,16 @@ def predict_for_date(date_str: str) -> pd.DataFrame:
     X = pd.DataFrame(feats, columns=FEATURES)
     #X.to_csv("data/games_today_stats.csv", index=False)
 
-    clf = load_clf_model("backend/models/mlb_wl_lgbm.txt")
-    probs = clf.predict(X)
+    model_path = "backend/models/mlb_wl_calibrated.joblib"
+    if not os.path.exists(model_path):
+        bucket = os.getenv("SUPABASE_BUCKET")
+        if bucket:
+            try:
+                ensure_local_file(bucket, model_path, model_path)
+            except Exception as exc:
+                print(f"Warning: failed to download classification model: {exc}")
+    clf = joblib.load(model_path)
+    probs = clf.predict_proba(X)[:, 1]
     
     probs_df = pd.DataFrame(records)
     probs_df["Prob_Home_Win"] = probs.round(3)
